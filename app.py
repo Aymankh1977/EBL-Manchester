@@ -553,17 +553,18 @@ init_session()
 # ─── Helper Functions ───
 
 def get_api_key():
-    """Get API key from sidebar or secrets."""
-    if "api_key" in st.session_state and st.session_state.api_key:
-        return st.session_state.api_key
-    return None
+    """Get API key from Streamlit secrets."""
+    try:
+        return st.secrets["ANTHROPIC_API_KEY"]
+    except (KeyError, FileNotFoundError):
+        return None
 
 
 def call_claude(messages, system_prompt, use_search=False):
     """Call Claude API with optional web search."""
     api_key = get_api_key()
     if not api_key:
-        return "⚠️ Please enter your Anthropic API key in the sidebar to continue."
+        return "⚠️ API key not found. Please add ANTHROPIC_API_KEY to your Streamlit secrets."
 
     client = anthropic.Anthropic(api_key=api_key)
 
@@ -681,17 +682,6 @@ with st.sidebar:
         </div>
     </div>
     """, unsafe_allow_html=True)
-
-    st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
-
-    # API Key
-    api_key_input = st.text_input(
-        "Anthropic API Key",
-        type="password",
-        placeholder="sk-ant-...",
-        help="Required to power the AI engine. Your key is not stored.",
-        key="api_key",
-    )
 
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
 
