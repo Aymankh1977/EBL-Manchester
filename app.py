@@ -1,9 +1,9 @@
 """
-DentEdTech Evidence Engine
+DentEdTech™ Evidence Engine
 An educational AI platform for medicine, dentistry, and pharmacology students
 at Manchester University. Built on the REAL-AI framework principles.
 
-© DentEdTech - All Rights Reserved
+© DentEdTech™ - All Rights Reserved
 """
 
 import streamlit as st
@@ -14,7 +14,7 @@ from datetime import datetime
 
 # ─── Page Config ───
 st.set_page_config(
-    page_title="DentEdTech Evidence Engine",
+    page_title="DentEdTech™ Evidence Engine",
     page_icon="🔬",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -361,7 +361,7 @@ section[data-testid="stSidebar"] h3 {
 
 # ─── System Prompts ───
 
-EVIDENCE_SYSTEM_PROMPT = """You are the DentEdTech Evidence Engine, an educational AI assistant for medicine, dentistry, and pharmacology students at the University of Manchester. You operate under the REAL-AI framework principles.
+EVIDENCE_SYSTEM_PROMPT = """You are the DentEdTech™ Evidence Engine, an educational AI assistant for medicine, dentistry, and pharmacology students at the University of Manchester. You operate under the REAL-AI framework principles.
 
 ## YOUR STRICT SOURCE CONSTRAINTS
 You may ONLY provide information from these source types:
@@ -433,7 +433,7 @@ End with a reflective question: "Now that you've seen this evidence, how does it
 - When using web search, prioritise PubMed, university repositories, and professional body websites"""
 
 
-EBL_SYSTEM_PROMPT = """You are the DentEdTech Enquiry-Based Learning (EBL) Facilitator. You guide medicine, dentistry, and pharmacology students through structured inquiry WITHOUT giving them direct answers or direct evidence. You operate under the REAL-AI framework.
+EBL_SYSTEM_PROMPT = """You are the DentEdTech™ Enquiry-Based Learning (EBL) Facilitator. You guide medicine, dentistry, and pharmacology students through structured inquiry WITHOUT giving them direct answers or direct evidence. You operate under the REAL-AI framework.
 
 ## YOUR ROLE
 You are a Socratic facilitator. Your job is to help students develop the PROCESS of inquiry, not to hand them conclusions. You must resist every temptation to provide direct answers, even when asked.
@@ -675,7 +675,7 @@ with st.sidebar:
     st.markdown("""
     <div style="text-align:center; padding: 1rem 0 0.5rem;">
         <span style="font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: #E8EDE9;">
-            Dent<span style="color: #D4A853;">Ed</span>Tech
+            Dent<span style="color: #D4A853;">Ed</span>Tech™
         </span>
         <div style="font-size: 0.72rem; color: #6B8577; margin-top: 0.2rem; letter-spacing: 0.08em; text-transform: uppercase;">
             Evidence Engine
@@ -740,7 +740,7 @@ with st.sidebar:
 
     st.markdown("""
     <div class="app-footer">
-        © 2026 DentEdTech<br>
+        © 2026 DentEdTech™<br>
         University of Manchester<br>
         <em>Not a substitute for clinical judgement</em>
     </div>
@@ -752,7 +752,7 @@ with st.sidebar:
 # Header
 st.markdown("""
 <div class="main-header">
-    <h1>Dent<span class="brand-accent">Ed</span>Tech Evidence Engine</h1>
+    <h1>Dent<span class="brand-accent">Ed</span>Tech™ Evidence Engine</h1>
     <div class="tagline">Theory-informed AI for health professions learning — built on the REAL-AI framework</div>
 </div>
 """, unsafe_allow_html=True)
