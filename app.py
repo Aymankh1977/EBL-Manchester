@@ -52,7 +52,23 @@ st.markdown("""
 
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
-header {visibility: hidden;}
+
+/* Show sidebar toggle on tablets/mobile (iPad) */
+header[data-testid="stHeader"] {
+    background: var(--bg-dark) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+/* iPad & tablet: ensure sidebar is accessible */
+@media (max-width: 1024px) {
+    section[data-testid="stSidebar"] {
+        z-index: 999 !important;
+    }
+    /* Make the hamburger menu more visible on dark bg */
+    header[data-testid="stHeader"] button {
+        color: var(--text-primary) !important;
+    }
+}
 
 .main-header {
     text-align: center;
