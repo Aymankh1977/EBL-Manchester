@@ -41,6 +41,7 @@ st.markdown("""
     --danger: #C44B4B;
     --warning: #D4A853;
     --success: #4CAF7D;
+    --video-red: #E04040;
 }
 
 /* Global overrides */
@@ -355,6 +356,80 @@ section[data-testid="stSidebar"] h3 {
     color: var(--text-muted);
     font-size: 0.75rem;
 }
+
+/* ─── Video Trust Engine Styles ─── */
+.trust-score-ring {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+.trust-high {
+    background: rgba(76, 175, 125, 0.15);
+    border: 3px solid #4CAF7D;
+    color: #4CAF7D;
+}
+.trust-medium {
+    background: rgba(212, 168, 83, 0.15);
+    border: 3px solid #D4A853;
+    color: #D4A853;
+}
+.trust-low {
+    background: rgba(196, 75, 75, 0.15);
+    border: 3px solid #C44B4B;
+    color: #C44B4B;
+}
+
+.video-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    transition: border-color 0.3s ease;
+}
+.video-card:hover {
+    border-color: var(--primary-light);
+}
+.video-card-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+.video-card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.05rem;
+    color: var(--text-primary);
+    margin-bottom: 0.2rem;
+}
+.video-card-channel {
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 500;
+}
+
+.credential-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    letter-spacing: 0.03em;
+}
+.cred-degree { background: rgba(100, 149, 237, 0.15); color: #6495ED; border: 1px solid rgba(100, 149, 237, 0.25); }
+.cred-postgrad { background: rgba(76, 175, 125, 0.15); color: #4CAF7D; border: 1px solid rgba(76, 175, 125, 0.25); }
+.cred-academic { background: rgba(212, 168, 83, 0.15); color: #D4A853; border: 1px solid rgba(212, 168, 83, 0.25); }
+.cred-reg { background: rgba(196, 130, 200, 0.15); color: #C882C8; border: 1px solid rgba(196, 130, 200, 0.25); }
+.cred-institution { background: rgba(224, 64, 64, 0.12); color: #E07070; border: 1px solid rgba(224, 64, 64, 0.2); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -531,6 +606,233 @@ When transitioning, explain why: "You've generated strong questions — let's mo
 - Always maintain warmth and encouragement — inquiry is hard, and struggle is productive"""
 
 
+VIDEO_SEARCH_SYSTEM_PROMPT = """You are the DentEdTech™ Clinical Video Trust Engine. You help students find the MOST trustworthy clinical skills videos on YouTube for dentistry, medicine, and pharmacology.
+
+## YOUR ROLE
+When a student asks about a clinical skill or procedure, you search for YouTube videos and evaluate them against the DentEdTech™ Video Trust Authentication Framework (VTAF). You return ONLY videos that meet the trust criteria, with full transparency about why each video is or is not trustworthy.
+
+## VIDEO TRUST AUTHENTICATION FRAMEWORK (VTAF) — 7 DIMENSIONS
+
+You must evaluate every video candidate against ALL seven dimensions and provide a score for each (1-5):
+
+### Dimension 1: Author Credentials (Weight: 25%)
+Score 5: Verified dental/medical degree + postgraduate specialty qualification + current academic appointment + professional registration (GDC/GMC/GPhC) + published researcher
+Score 4: Verified degree + postgraduate qualification + academic or hospital appointment
+Score 3: Verified degree + clinical practice (no academic appointment)
+Score 2: Claims credentials but not independently verifiable
+Score 1: No credentials stated or unverifiable
+
+Look for: BDS, DDS, MBChB, MBBS, MPharm, MFDS, MJDF, FDSRCS, MSc, PhD, FRCS, consultant title, professor/lecturer title, GDC/GMC number displayed.
+
+### Dimension 2: Institutional Backing (Weight: 20%)
+Score 5: Official university channel or Royal College/professional body channel
+Score 4: NHS Trust or teaching hospital channel
+Score 3: Professional association channel (BDA, ADA, FDI) or accredited CPD provider
+Score 2: Personal channel but author has verified institutional affiliation
+Score 1: Personal channel with no institutional connection
+
+### Dimension 3: Production Quality (Weight: 10%)
+Score 5: Professional multi-angle filming, clear audio, HD/4K, proper lighting of clinical field
+Score 4: Good quality single-camera with clear clinical visibility
+Score 3: Adequate quality, some limitations in angles or audio
+Score 2: Poor quality but content still discernible
+Score 1: Unwatchable quality that impedes learning
+
+### Dimension 4: Educational Script & Structure (Weight: 15%)
+Score 5: States learning objectives + step-by-step narration with anatomical terminology + evidence citations + summary/key takeaways + addresses common errors
+Score 4: Clear narration with terminology + structured steps + summary
+Score 3: Narrated procedure with some structure but missing objectives or summary
+Score 2: Minimal narration, mostly demonstration
+Score 1: No narration or educational structure
+
+### Dimension 5: View Count & Professional Engagement (Weight: 5%)
+This dimension is weighted LOW deliberately. Dental professionals watch niche content; low views do NOT mean low quality. Evaluate:
+- Like-to-dislike ratio (if visible) matters more than raw count
+- Comments from verified professionals indicating accuracy
+- Whether the channel has a consistent professional audience
+Score 5: Strong professional engagement regardless of view count
+Score 4: Moderate professional engagement
+Score 3: General engagement, some professional comments
+Score 2: Low engagement overall
+Score 1: No engagement or predominantly non-professional audience
+
+### Dimension 6: Skill Transfer Potential (Weight: 15%)
+Score 5: Teaches transferable technique + shows common errors + addresses patient variations + complications discussed + suitable for simulation practice afterwards
+Score 4: Teaches technique + addresses some variations + mentions complications
+Score 3: Demonstrates technique clearly but doesn't address variations or errors
+Score 2: Shows end result but technique is hard to replicate from watching
+Score 1: Entertainment/demonstration only, no transfer value
+
+### Dimension 7: Currency & Evidence Alignment (Weight: 10%)
+Score 5: Published within 2 years + references current guidelines (NICE, SDCEP, BSP, BNF) + technique consistent with current evidence
+Score 4: Published within 3 years + technique consistent with current practice
+Score 3: Published within 5 years + still largely current
+Score 2: Older than 5 years but fundamentals unchanged
+Score 1: Outdated techniques or contradicts current guidelines
+
+## TRUST SCORE CALCULATION
+Weighted score = (D1×0.25) + (D2×0.20) + (D3×0.10) + (D4×0.15) + (D5×0.05) + (D6×0.15) + (D7×0.10)
+Convert to percentage: (weighted score / 5) × 100
+
+Trust Levels:
+- 80-100%: ✅ TRUSTED — Recommended for learning
+- 60-79%: ⚠️ USE WITH CAUTION — Some limitations noted
+- Below 60%: ❌ NOT RECOMMENDED — Significant trust concerns
+
+## RESPONSE FORMAT
+For each video you find and evaluate, provide this EXACT structure:
+
+### 🎥 Video [N]: [Title]
+**Channel:** [Name]
+**URL:** [Full YouTube URL]
+**Published:** [Date/Year]
+
+**👤 Author Profile:**
+- Name: [Full name]
+- Qualifications: [List all verified qualifications e.g., BDS, MFDS RCS, PhD]
+- Current Position: [Title and institution]
+- Registration: [GDC/GMC number if available, or "Not displayed"]
+- Publications: [If known, or "Not verified"]
+
+**📊 VTAF Trust Score: [X]%** [✅ TRUSTED / ⚠️ USE WITH CAUTION / ❌ NOT RECOMMENDED]
+
+**Dimension Breakdown:**
+1. Author Credentials: [X]/5 — [Brief justification]
+2. Institutional Backing: [X]/5 — [Brief justification]
+3. Production Quality: [X]/5 — [Brief justification]
+4. Educational Structure: [X]/5 — [Brief justification]
+5. Professional Engagement: [X]/5 — [Brief justification]
+6. Skill Transfer Potential: [X]/5 — [Brief justification]
+7. Currency & Evidence: [X]/5 — [Brief justification]
+
+**🎯 Skill Transfer Assessment:**
+- Can you practise this after watching? [Yes/Partially/No]
+- What you'll need: [Equipment/simulation requirements]
+- What this video does NOT teach: [Gaps and limitations]
+
+**⚠️ Limitations:** [What this video cannot replicate — e.g., haptic feedback, patient anxiety, real tissue feel]
+
+---
+
+Then at the end:
+
+**🤔 Post-Viewing Reflection (Pillar 1):**
+After watching, ask yourself: What was new? What confirmed your existing knowledge? What would you do differently in clinic? Discuss with your supervisor before attempting the procedure.
+
+## CRITICAL RULES
+- Search YouTube specifically for the clinical skill requested
+- ALWAYS provide the full 7-dimension trust breakdown — never skip dimensions
+- If you cannot verify author credentials, say so explicitly — do NOT assume
+- If no trusted videos exist for a topic, say so honestly and suggest the student consult faculty or a specific textbook
+- Recommend a MAXIMUM of 3 videos per query, ranked by trust score
+- For each video, state what it does NOT teach (Pillar 3: Authentic Alignment)
+- Include the direct YouTube URL so the student can watch within the platform
+- Weight your recommendations toward videos from UK/European dental practice where relevant for Manchester students, but include international sources when they are higher quality
+- When author backgrounds are available on university websites or professional registers, include that information"""
+
+
+# ─── Trusted Channel Registry ───
+TRUSTED_CHANNELS = {
+    "university": [
+        {
+            "channel": "University of Manchester",
+            "url": "https://www.youtube.com/@OfficialUoM",
+            "category": "University",
+            "trust_floor": 85,
+            "notes": "Home institution. Dental school lectures, clinical demonstrations.",
+        },
+        {
+            "channel": "King's College London Dentistry",
+            "url": "https://www.youtube.com/@KCLDentistry",
+            "category": "University",
+            "trust_floor": 90,
+            "notes": "Leading UK dental school. Faculty-led procedural and didactic content.",
+        },
+        {
+            "channel": "University of Sheffield School of Clinical Dentistry",
+            "url": "https://www.youtube.com/@shikitagawa",
+            "category": "University",
+            "trust_floor": 85,
+            "notes": "UK dental school with strong simulation teaching.",
+        },
+        {
+            "channel": "Harvard School of Dental Medicine",
+            "url": "https://www.youtube.com/@HarvardDentalMedicine",
+            "category": "University",
+            "trust_floor": 90,
+            "notes": "International leader in dental education and research.",
+        },
+        {
+            "channel": "University of Michigan School of Dentistry",
+            "url": "https://www.youtube.com/@umichdent",
+            "category": "University",
+            "trust_floor": 88,
+            "notes": "Extensive clinical skills video library.",
+        },
+    ],
+    "professional_bodies": [
+        {
+            "channel": "British Dental Association (BDA)",
+            "url": "https://www.youtube.com/@TheBDA",
+            "category": "Professional Body",
+            "trust_floor": 90,
+            "notes": "UK professional body. Clinical guidance, CPD content.",
+        },
+        {
+            "channel": "General Dental Council (GDC)",
+            "url": "https://www.youtube.com/@TheGDCUK",
+            "category": "Regulator",
+            "trust_floor": 85,
+            "notes": "UK dental regulator. Standards, fitness to practise, professionalism.",
+        },
+        {
+            "channel": "Royal College of Surgeons of England",
+            "url": "https://www.youtube.com/@RCSEngland",
+            "category": "Royal College",
+            "trust_floor": 92,
+            "notes": "FDSRCS examinations, surgical technique, CPD.",
+        },
+        {
+            "channel": "FDI World Dental Federation",
+            "url": "https://www.youtube.com/@FDIWorldDentalFederation",
+            "category": "International Body",
+            "trust_floor": 85,
+            "notes": "Global dental federation. International perspectives and guidelines.",
+        },
+        {
+            "channel": "British Medical Association (BMA)",
+            "url": "https://www.youtube.com/@TheBMA",
+            "category": "Professional Body",
+            "trust_floor": 88,
+            "notes": "UK medical professional body. Relevant for medical students.",
+        },
+        {
+            "channel": "Royal Pharmaceutical Society",
+            "url": "https://www.youtube.com/@royalpharmaceuticalsociety",
+            "category": "Professional Body",
+            "trust_floor": 88,
+            "notes": "UK pharmacy professional body. Pharmacology content.",
+        },
+    ],
+    "nhs": [
+        {
+            "channel": "NHS Health Education England",
+            "url": "https://www.youtube.com/@NHSHEE",
+            "category": "NHS",
+            "trust_floor": 87,
+            "notes": "NHS training and education content.",
+        },
+        {
+            "channel": "NHS England",
+            "url": "https://www.youtube.com/@NHSEngland",
+            "category": "NHS",
+            "trust_floor": 85,
+            "notes": "Official NHS channel. Clinical pathways, public health.",
+        },
+    ],
+}
+
+
 # ─── Session State Initialization ───
 def init_session():
     defaults = {
@@ -542,6 +844,7 @@ def init_session():
         "reflection_given": False,
         "discipline": "Dentistry",
         "year_of_study": "Year 3",
+        "video_messages": [],
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -586,7 +889,6 @@ def call_claude(messages, system_prompt, use_search=False):
     try:
         response = client.messages.create(**kwargs)
 
-        # Extract text from response content blocks
         text_parts = []
         for block in response.content:
             if hasattr(block, "text"):
@@ -594,7 +896,7 @@ def call_claude(messages, system_prompt, use_search=False):
         return "\n".join(text_parts) if text_parts else "I wasn't able to generate a response. Please try again."
 
     except anthropic.AuthenticationError:
-        return "⚠️ Invalid API key. Please check your Anthropic API key in the sidebar."
+        return "⚠️ Invalid API key. Please check your Anthropic API key."
     except anthropic.RateLimitError:
         return "⚠️ Rate limit reached. Please wait a moment and try again."
     except Exception as e:
@@ -670,6 +972,37 @@ def render_real_ai_badges(pillars):
     return html
 
 
+def render_youtube_embed(video_id):
+    """Render an embedded YouTube player."""
+    return f"""
+    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 10px; margin: 1rem 0;">
+        <iframe
+            src="https://www.youtube.com/embed/{video_id}"
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 10px;"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+        </iframe>
+    </div>"""
+
+
+def render_trusted_channels_sidebar():
+    """Render the trusted channel registry in sidebar."""
+    with st.expander("📋 Trusted Channel Registry"):
+        st.markdown("**Pre-verified channels:**")
+        for category, channels in TRUSTED_CHANNELS.items():
+            cat_label = category.replace("_", " ").title()
+            st.markdown(f"**{cat_label}**")
+            for ch in channels:
+                st.markdown(
+                    f"<span style='font-size:0.78rem; color: var(--text-secondary);'>"
+                    f"• {ch['channel']}<br>"
+                    f"<span style='color: var(--text-muted); font-size:0.7rem;'>"
+                    f"Trust floor: {ch['trust_floor']}% · {ch['category']}</span></span>",
+                    unsafe_allow_html=True,
+                )
+            st.markdown("")
+
+
 # ─── Sidebar ───
 with st.sidebar:
     st.markdown("""
@@ -720,6 +1053,10 @@ with st.sidebar:
         *Framework: Beyond the Algorithm (2026)*
         """)
 
+    # Trusted Channels (show only in video mode)
+    if st.session_state.mode == "video":
+        render_trusted_channels_sidebar()
+
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
 
     # Mode switch / Reset
@@ -732,10 +1069,12 @@ with st.sidebar:
             if st.session_state.mode == "evidence":
                 st.session_state.evidence_messages = []
                 st.session_state.reflection_given = False
-            else:
+            elif st.session_state.mode == "ebl":
                 st.session_state.ebl_messages = []
                 st.session_state.ebl_phase = 1
                 st.session_state.ebl_case = None
+            elif st.session_state.mode == "video":
+                st.session_state.video_messages = []
             st.rerun()
 
     st.markdown("""
@@ -769,7 +1108,7 @@ if st.session_state.mode is None:
     </div>
     """, unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2, gap="large")
+    col1, col2, col3 = st.columns(3, gap="medium")
 
     with col1:
         st.markdown(f"""
@@ -813,7 +1152,6 @@ if st.session_state.mode is None:
         """, unsafe_allow_html=True)
         if st.button("Enter EBL Mode →", key="btn_ebl", use_container_width=True):
             st.session_state.mode = "ebl"
-            # Set initial EBL welcome
             welcome = (
                 "📍 **Phase 1: FORMING**\n\n"
                 "Welcome to Enquiry-Based Learning. This is where your inquiry journey begins.\n\n"
@@ -823,6 +1161,29 @@ if st.session_state.mode is None:
                 "Before we begin, take a moment: *What topic or clinical area are you most curious about right now?*"
             )
             st.session_state.ebl_messages = [{"role": "assistant", "content": welcome}]
+            st.rerun()
+
+    with col3:
+        st.markdown(f"""
+        <div class="mode-card">
+            <h3>🎥 Clinical Video Trust Engine</h3>
+            <p>
+                Find the most trustworthy clinical skills videos on YouTube, scored against
+                a 7-dimension trust framework: author credentials, institutional backing,
+                production quality, educational structure, engagement, skill transfer potential,
+                and currency.
+            </p>
+            <p>
+                Videos play directly in the platform. Every recommendation shows
+                the full trust breakdown so you know exactly why it's reliable.
+            </p>
+            <div style="margin-top: 0.8rem;">
+                {render_real_ai_badges(["R", "A", "L"])}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Enter Video Mode →", key="btn_video", use_container_width=True):
+            st.session_state.mode = "video"
             st.rerun()
 
     # Framework overview
@@ -889,7 +1250,6 @@ elif st.session_state.mode == "evidence":
     </div>
     """, unsafe_allow_html=True)
 
-    # Transparency notice
     st.markdown("""
     <div class="limitation-notice">
         <strong>⚠️ Pillar 3 — Transparency Statement:</strong>
@@ -901,24 +1261,20 @@ elif st.session_state.mode == "evidence":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Display conversation history
     for msg in st.session_state.evidence_messages:
         render_message(msg["role"], msg["content"])
 
-    # Input
     user_input = st.chat_input(
         "Ask a clinical or scientific question...",
         key="evidence_input",
     )
 
     if user_input:
-        # Add user message
         st.session_state.evidence_messages.append(
             {"role": "user", "content": user_input}
         )
         render_message("user", user_input)
 
-        # Build messages for API — include student context
         context_note = f"[Student context: {st.session_state.discipline}, {st.session_state.year_of_study}, University of Manchester]"
         api_messages = []
         for msg in st.session_state.evidence_messages:
@@ -933,7 +1289,6 @@ elif st.session_state.mode == "evidence":
                     "content": msg["content"],
                 })
 
-        # Call Claude with web search enabled for evidence retrieval
         with st.spinner("Searching evidence-based sources..."):
             response = call_claude(
                 api_messages,
@@ -961,10 +1316,8 @@ elif st.session_state.mode == "ebl":
     </div>
     """, unsafe_allow_html=True)
 
-    # Phase stepper
     render_phase_stepper(st.session_state.ebl_phase)
 
-    # Phase descriptions
     phase_info = {
         1: ("Forming", "Encounter the problem. Activate what you already know. Identify the edges of your understanding."),
         2: ("Storming", "Generate hypotheses freely. Challenge assumptions. Explore multiple perspectives without filtering."),
@@ -981,7 +1334,6 @@ elif st.session_state.mode == "ebl":
     </div>
     """, unsafe_allow_html=True)
 
-    # Transparency notice for EBL
     st.markdown("""
     <div class="limitation-notice">
         <strong>⚠️ EBL Commitment:</strong>
@@ -993,11 +1345,9 @@ elif st.session_state.mode == "ebl":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Display conversation history
     for msg in st.session_state.ebl_messages:
         render_message(msg["role"], msg["content"])
 
-    # Phase navigation buttons
     nav_col1, nav_col2, nav_col3 = st.columns([1, 2, 1])
     with nav_col1:
         if st.session_state.ebl_phase > 1:
@@ -1018,20 +1368,17 @@ elif st.session_state.mode == "ebl":
                 )
                 st.rerun()
 
-    # Input
     user_input = st.chat_input(
         "Share your thinking...",
         key="ebl_input",
     )
 
     if user_input:
-        # Add user message
         st.session_state.ebl_messages.append(
             {"role": "user", "content": user_input}
         )
         render_message("user", user_input)
 
-        # Build API messages with phase context
         context_note = (
             f"[Student context: {st.session_state.discipline}, {st.session_state.year_of_study}, "
             f"University of Manchester]\n"
@@ -1052,7 +1399,6 @@ elif st.session_state.mode == "ebl":
             else:
                 api_messages.append(msg)
 
-        # Call Claude WITHOUT web search (EBL must not provide evidence)
         with st.spinner("Reflecting on your inquiry..."):
             response = call_claude(
                 api_messages,
@@ -1060,7 +1406,6 @@ elif st.session_state.mode == "ebl":
                 use_search=False,
             )
 
-        # Check if AI suggests phase transition
         if st.session_state.ebl_phase < 5:
             transition_keywords = {
                 1: ["move to storming", "phase 2", "ready to storm", "let's storm"],
@@ -1073,6 +1418,135 @@ elif st.session_state.mode == "ebl":
                 st.session_state.ebl_phase += 1
 
         st.session_state.ebl_messages.append(
+            {"role": "assistant", "content": response}
+        )
+        st.rerun()
+
+
+# ─── Clinical Video Trust Engine ───
+elif st.session_state.mode == "video":
+
+    st.markdown(f"""
+    <div style="margin-bottom: 1rem;">
+        <span style="font-family: 'DM Serif Display', serif; font-size: 1.4rem; color: var(--text-primary);">
+            🎥 Clinical Video Trust Engine
+        </span>
+        <span style="margin-left: 1rem;">
+            {render_real_ai_badges(["R", "A", "L"])}
+        </span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # VTAF Overview
+    st.markdown("""
+    <div class="ebl-phase">
+        <div class="ebl-phase-title">📐 Video Trust Authentication Framework (VTAF)</div>
+        <div class="ebl-phase-desc">
+            Every video is evaluated against 7 trust dimensions: Author Credentials (25%),
+            Institutional Backing (20%), Educational Structure (15%), Skill Transfer Potential (15%),
+            Production Quality (10%), Currency & Evidence Alignment (10%), and Professional Engagement (5%).
+            Only videos scoring ≥60% are recommended. Full transparency on every score.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Transparency notice
+    st.markdown("""
+    <div class="limitation-notice">
+        <strong>⚠️ Pillar 3 — Transparency Statement:</strong>
+        Trust scores are AI-assessed based on available information and may not capture all factors.
+        Author credentials are verified where possible but should be independently confirmed.
+        Watching a video does not replace supervised clinical practice.
+        Always discuss techniques with your clinical supervisors before applying them.
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Pre-reflection prompt (REAL-AI Pillar 1)
+    if not st.session_state.video_messages:
+        st.markdown("""
+        <div class="reflection-box">
+            <h4>🤔 Before You Search (Pillar 1: Reflective Integration)</h4>
+            <p>
+                Before watching a clinical video, take a moment to consider:
+                What do you already know about this procedure? What specific aspect are you
+                uncertain about? This primes your brain to learn actively rather than passively watch.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Display conversation history with embedded videos
+    for msg in st.session_state.video_messages:
+        if msg["role"] == "user":
+            render_message("user", msg["content"])
+        else:
+            render_message("assistant", msg["content"])
+
+            # Extract and embed any YouTube URLs found in the response
+            youtube_ids = re.findall(
+                r'https?://(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([\w-]+)',
+                msg["content"]
+            )
+            # Deduplicate while preserving order
+            seen = set()
+            unique_ids = []
+            for vid_id in youtube_ids:
+                if vid_id not in seen:
+                    seen.add(vid_id)
+                    unique_ids.append(vid_id)
+
+            for vid_id in unique_ids:
+                st.markdown(
+                    render_youtube_embed(vid_id),
+                    unsafe_allow_html=True,
+                )
+
+    # Input
+    user_input = st.chat_input(
+        "Search for a clinical skill or procedure (e.g., 'Class II composite restoration', 'inferior alveolar nerve block')...",
+        key="video_input",
+    )
+
+    if user_input:
+        st.session_state.video_messages.append(
+            {"role": "user", "content": user_input}
+        )
+        render_message("user", user_input)
+
+        # Build trusted channels context
+        trusted_context = "\n\n## PRE-VERIFIED TRUSTED CHANNELS\nThe following channels have been pre-verified by DentEdTech™. If you find videos from these channels, their trust floor is already established:\n"
+        for category, channels in TRUSTED_CHANNELS.items():
+            for ch in channels:
+                trusted_context += f"- {ch['channel']} ({ch['category']}) — Trust floor: {ch['trust_floor']}% — {ch['notes']}\n"
+
+        full_system_prompt = VIDEO_SEARCH_SYSTEM_PROMPT + trusted_context
+
+        context_note = (
+            f"[Student context: {st.session_state.discipline}, {st.session_state.year_of_study}, "
+            f"University of Manchester]\n"
+            f"[Search YouTube for clinical skills videos matching this query. Evaluate against VTAF. "
+            f"Provide direct YouTube URLs. Prioritise UK dental education where relevant.]"
+        )
+
+        api_messages = []
+        for i, msg in enumerate(st.session_state.video_messages):
+            if msg["role"] == "user" and i == len(st.session_state.video_messages) - 1:
+                api_messages.append({
+                    "role": "user",
+                    "content": f"{context_note}\n\n{msg['content']}"
+                })
+            else:
+                api_messages.append(msg)
+
+        with st.spinner("Searching and evaluating clinical videos against VTAF..."):
+            response = call_claude(
+                api_messages,
+                full_system_prompt,
+                use_search=True,
+            )
+
+        st.session_state.video_messages.append(
             {"role": "assistant", "content": response}
         )
         st.rerun()
