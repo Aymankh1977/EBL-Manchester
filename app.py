@@ -768,21 +768,41 @@ with st.sidebar:
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
 
     if st.session_state.mode is not None:
-        if st.button("← Back to Mode Selection", use_container_width=True):
-            st.session_state.mode = None
-            st.rerun()
-        if st.button("🔄 Reset Conversation", use_container_width=True):
+        if st.button("← Back to Mode Selection", use_container_width=True, key="btn_back"):
+            # Clear state for current mode before going back
             if st.session_state.mode == "evidence":
                 st.session_state.evidence_messages = []
+                st.session_state.reflection_given = False
             elif st.session_state.mode == "ebl":
                 st.session_state.ebl_messages = []
                 st.session_state.ebl_phase = 1
+                st.session_state.ebl_case = None
             elif st.session_state.mode == "video":
                 st.session_state.video_messages = []
             elif st.session_state.mode == "recall":
                 for k in ["ar_phase", "ar_study_material", "ar_file_name", "ar_free_recall",
-                           "ar_analysis", "ar_questions", "ar_answers", "ar_round", "ar_history", "ar_messages"]:
-                    del st.session_state[k]
+                           "ar_analysis", "ar_questions", "ar_answers", "ar_round",
+                           "ar_history", "ar_messages", "ar_relearn_content"]:
+                    if k in st.session_state:
+                        del st.session_state[k]
+            st.session_state.mode = None
+            st.rerun()
+        if st.button("🔄 Reset Conversation", use_container_width=True, key="btn_reset"):
+            if st.session_state.mode == "evidence":
+                st.session_state.evidence_messages = []
+                st.session_state.reflection_given = False
+            elif st.session_state.mode == "ebl":
+                st.session_state.ebl_messages = []
+                st.session_state.ebl_phase = 1
+                st.session_state.ebl_case = None
+            elif st.session_state.mode == "video":
+                st.session_state.video_messages = []
+            elif st.session_state.mode == "recall":
+                for k in ["ar_phase", "ar_study_material", "ar_file_name", "ar_free_recall",
+                           "ar_analysis", "ar_questions", "ar_answers", "ar_round",
+                           "ar_history", "ar_messages", "ar_relearn_content"]:
+                    if k in st.session_state:
+                        del st.session_state[k]
                 init_session()
             st.rerun()
 
