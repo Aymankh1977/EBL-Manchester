@@ -699,10 +699,10 @@ def render_knowledge_bar(label, count, total, color_class):
 
 
 def render_recall_phase_stepper(current_phase):
-    phases = [("upload", "📄 Upload"), ("free_recall", "✍️ Recall"), ("analysis", "📊 Analysis"),
-              ("questions", "❓ Questions"), ("relearn", "📖 Re-learn")]
+    phases = [("upload", "📄 Upload"), ("free_recall", "✍️ Recall"), ("gap_report_1", "📊 Gaps"),
+              ("questions", "❓ Questions"), ("gap_report_2", "📊 Updated Gaps")]
     html = '<div class="phase-stepper">'
-    phase_order = ["upload", "free_recall", "analysis", "questions", "relearn"]
+    phase_order = ["upload", "free_recall", "gap_report_1", "questions", "gap_report_2"]
     current_idx = phase_order.index(current_phase) if current_phase in phase_order else 0
     for i, (key, label) in enumerate(phases):
         if i < current_idx:
@@ -753,6 +753,64 @@ def read_uploaded_file(uploaded_file):
         return f"Error reading file: {str(e)}"
 
 
+def _render_gap_report(analysis, context_label):
+    """Render the gap analysis report — used by both gap_report_1 and gap_report_2."""
+    a = analysis
+    total = a.get("total_concepts", 0)
+    understood = a.get("understood_count", 0)
+    misunderstood = a.get("misunderstood_count", 0)
+    missed = a.get("missed_count", 0)
+    score = a.get("round_score", 0)
+
+    if score >= 80:
+        score_color = "#4CAF7D"
+    elif score >= 60:
+        score_color = "#D4A853"
+    else:
+        score_color = "#C44B4B"
+
+    r, g, b = int(score_color[1:3], 16), int(score_color[3:5], 16), int(score_color[5:7], 16)
+    st.markdown(f"""<div style="text-align:center;margin:1.5rem 0;">
+        <div style="display:inline-flex;width:90px;height:90px;border-radius:50%;border:4px solid {score_color};
+        background:rgba({r},{g},{b},0.12);align-items:center;justify-content:center;
+        font-family:'DM Serif Display',serif;font-size:1.6rem;color:{score_color};">{score}%</div>
+        <div style="color:var(--text-secondary);margin-top:0.5rem;font-size:0.85rem;"><em>{context_label}</em></div>
+        <div style="color:var(--text-muted);margin-top:0.2rem;font-size:0.82rem;">{a.get('summary', '')}</div></div>""", unsafe_allow_html=True)
+
+    st.markdown(render_knowledge_bar("✅ Understood", understood, total, "gap-understood"), unsafe_allow_html=True)
+    st.markdown(render_knowledge_bar("⚠️ Misunderstood", misunderstood, total, "gap-misunderstood"), unsafe_allow_html=True)
+    st.markdown(render_knowledge_bar("❌ Missed", missed, total, "gap-missed"), unsafe_allow_html=True)
+
+    with st.expander("❌ Missed Concepts — What you need to learn", expanded=True):
+        items = a.get("missed", [])
+        if items:
+            for item in items:
+                st.markdown(f"**{item['concept']}**")
+                st.markdown(f"{item['correct']}")
+                st.markdown("---")
+        else:
+            st.markdown("*Nothing missed — well done!*")
+
+    with st.expander("⚠️ Misunderstood Concepts — What you got wrong", expanded=True):
+        items = a.get("misunderstood", [])
+        if items:
+            for item in items:
+                st.markdown(f"**{item['concept']}**")
+                st.markdown(f"You said: *\"{item['student_said']}\"*")
+                st.markdown(f"Correct: **{item['correct']}**")
+                st.markdown("---")
+        else:
+            st.markdown("*No misunderstandings — well done!*")
+
+    with st.expander("✅ Understood Concepts — What you got right", expanded=False):
+        items = a.get("understood", [])
+        if items:
+            for item in items:
+                st.markdown(f"**{item['concept']}** — {item['detail']}")
+        else:
+            st.markdown("*Keep working — you'll get there!*")
+
+
 # ─── Sidebar ───
 with st.sidebar:
     st.markdown("""
@@ -797,7 +855,8 @@ with st.sidebar:
                 st.session_state.video_messages = []
             elif st.session_state.mode == "recall":
                 for k in ["ar_phase", "ar_study_material", "ar_file_name", "ar_free_recall",
-                           "ar_analysis", "ar_questions", "ar_answers", "ar_round",
+                           "ar_analysis", "ar_analysis_post_questions", "ar_question_answers",
+                           "ar_questions", "ar_answers", "ar_round",
                            "ar_history", "ar_messages", "ar_relearn_content"]:
                     if k in st.session_state:
                         del st.session_state[k]
@@ -815,7 +874,8 @@ with st.sidebar:
                 st.session_state.video_messages = []
             elif st.session_state.mode == "recall":
                 for k in ["ar_phase", "ar_study_material", "ar_file_name", "ar_free_recall",
-                           "ar_analysis", "ar_questions", "ar_answers", "ar_round",
+                           "ar_analysis", "ar_analysis_post_questions", "ar_question_answers",
+                           "ar_questions", "ar_answers", "ar_round",
                            "ar_history", "ar_messages", "ar_relearn_content"]:
                     if k in st.session_state:
                         del st.session_state[k]
@@ -1014,7 +1074,7 @@ elif st.session_state.mode == "recall":
                 Don't worry about order or completeness — just get everything out of your head. This is the most important step: retrieval is where learning happens.</div></div>""", unsafe_allow_html=True)
         else:
             st.markdown(f"""<div class="recall-phase-box"><div class="recall-phase-title">✍️ Round {st.session_state.ar_round}: Write What You Remember Now</div>
-                <div class="ebl-phase-desc">You've just reviewed the material with your gaps highlighted. Now, without looking, write everything you remember — especially the concepts you missed or misunderstood in the previous round.</div></div>""", unsafe_allow_html=True)
+                <div class="ebl-phase-desc">You've reviewed your gaps from the previous round. Now, without looking, write everything you remember — especially the concepts you missed or misunderstood last time.</div></div>""", unsafe_allow_html=True)
 
         st.markdown(f"""<div class="limitation-notice"><strong>📄 Studying:</strong> {st.session_state.ar_file_name}</div>""", unsafe_allow_html=True)
 
@@ -1027,14 +1087,16 @@ elif st.session_state.mode == "recall":
 
         if st.button("Submit my recall →", use_container_width=True, disabled=not free_recall):
             st.session_state.ar_free_recall = free_recall
-            st.session_state.ar_phase = "analysis"
+            st.session_state.ar_analysis = None
+            st.session_state.ar_phase = "gap_report_1"
             st.rerun()
 
-    # ── PHASE 3: Analysis ──
-    elif st.session_state.ar_phase == "analysis":
-        st.markdown("""<div class="recall-phase-box"><div class="recall-phase-title">📊 Step 3: Knowledge Gap Analysis</div>
-            <div class="ebl-phase-desc">The AI is comparing your recall against the original material to identify what you understood, misunderstood, and missed completely.</div></div>""", unsafe_allow_html=True)
+    # ── PHASE 3: Gap Report 1 (after free recall) ──
+    elif st.session_state.ar_phase == "gap_report_1":
+        st.markdown("""<div class="recall-phase-box"><div class="recall-phase-title">📊 Step 3: What You Missed & Misunderstood</div>
+            <div class="ebl-phase-desc">The AI has compared your recall against the original material. Here's what you got right, what you got wrong, and what you missed completely.</div></div>""", unsafe_allow_html=True)
 
+        # Run analysis if not done yet
         if st.session_state.ar_analysis is None:
             with st.spinner("Analysing your recall against the study material..."):
                 analysis_messages = [{"role": "user", "content": f"""## ORIGINAL STUDY MATERIAL:
@@ -1047,7 +1109,7 @@ Analyse this recall attempt against the original material. Respond ONLY with val
                 result = call_claude_json(analysis_messages, ACTIVE_RECALL_ANALYSIS_PROMPT)
                 if result:
                     st.session_state.ar_analysis = result
-                    st.session_state.ar_history.append({"round": st.session_state.ar_round, "score": result.get("round_score", 0)})
+                    st.session_state.ar_history.append({"round": st.session_state.ar_round, "phase": "recall", "score": result.get("round_score", 0)})
                     st.rerun()
                 else:
                     st.error("Analysis failed. Please try again.")
@@ -1055,83 +1117,27 @@ Analyse this recall attempt against the original material. Respond ONLY with val
                         st.rerun()
 
         if st.session_state.ar_analysis:
-            a = st.session_state.ar_analysis
-            total = a.get("total_concepts", 0)
-            understood = a.get("understood_count", 0)
-            misunderstood = a.get("misunderstood_count", 0)
-            missed = a.get("missed_count", 0)
-            score = a.get("round_score", 0)
-
-            # Score display
-            if score >= 80:
-                score_color = "#4CAF7D"
-            elif score >= 60:
-                score_color = "#D4A853"
-            else:
-                score_color = "#C44B4B"
-
-            st.markdown(f"""<div style="text-align:center;margin:1.5rem 0;">
-                <div style="display:inline-block;width:90px;height:90px;border-radius:50%;border:4px solid {score_color};
-                background:rgba({','.join(str(int(score_color.lstrip('#')[i:i+2], 16)) for i in (0,2,4))},0.12);
-                display:inline-flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:1.6rem;color:{score_color};">
-                {score}%</div>
-                <div style="color:var(--text-secondary);margin-top:0.5rem;font-size:0.88rem;">{a.get('summary', '')}</div></div>""", unsafe_allow_html=True)
-
-            # Knowledge bars
-            st.markdown(render_knowledge_bar("✅ Understood", understood, total, "gap-understood"), unsafe_allow_html=True)
-            st.markdown(render_knowledge_bar("⚠️ Misunderstood", misunderstood, total, "gap-misunderstood"), unsafe_allow_html=True)
-            st.markdown(render_knowledge_bar("❌ Missed", missed, total, "gap-missed"), unsafe_allow_html=True)
-
-            # Detailed breakdown
-            with st.expander("✅ Understood Concepts", expanded=False):
-                for item in a.get("understood", []):
-                    st.markdown(f"**{item['concept']}** — {item['detail']}")
-
-            with st.expander("⚠️ Misunderstood Concepts", expanded=True):
-                for item in a.get("misunderstood", []):
-                    st.markdown(f"**{item['concept']}**")
-                    st.markdown(f"You said: *\"{item['student_said']}\"*")
-                    st.markdown(f"Correct: **{item['correct']}**")
-                    st.markdown("---")
-
-            with st.expander("❌ Missed Concepts", expanded=True):
-                for item in a.get("missed", []):
-                    st.markdown(f"**{item['concept']}** — {item['correct']}")
-
-            # Score history
-            if len(st.session_state.ar_history) > 1:
-                st.markdown("**📈 Progress Across Rounds:**")
-                for h in st.session_state.ar_history:
-                    bar_w = h['score']
-                    bar_c = "#4CAF7D" if h['score'] >= 80 else "#D4A853" if h['score'] >= 60 else "#C44B4B"
-                    st.markdown(f"""<div style="display:flex;align-items:center;margin:0.3rem 0;font-size:0.82rem;">
-                        <span style="width:70px;color:var(--text-muted);">Round {h['round']}</span>
-                        <div style="flex:1;height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;">
-                        <div style="width:{bar_w}%;height:100%;background:{bar_c};border-radius:4px;"></div></div>
-                        <span style="width:40px;text-align:right;color:var(--text-secondary);font-weight:600;">{h['score']}%</span></div>""", unsafe_allow_html=True)
+            _render_gap_report(st.session_state.ar_analysis, "Based on your free recall")
 
             st.markdown("<br>", unsafe_allow_html=True)
 
+            score = st.session_state.ar_analysis.get("round_score", 0)
             if score >= 95:
                 st.markdown("""<div class="reflection-box"><h4>🎉 Outstanding!</h4>
-                    <p>You've demonstrated comprehensive recall of this material. Consider discussing the concepts you found trickiest with your tutor to deepen your understanding even further.</p></div>""", unsafe_allow_html=True)
+                    <p>You've demonstrated comprehensive recall of this material. Consider discussing the trickiest concepts with your tutor to deepen your understanding even further.</p></div>""", unsafe_allow_html=True)
             else:
-                c1, c2 = st.columns(2)
-                with c1:
-                    if st.button("❓ Test me with questions →", use_container_width=True):
-                        st.session_state.ar_phase = "questions"
-                        st.session_state.ar_questions = None
-                        st.session_state.ar_answers = {}
-                        st.rerun()
-                with c2:
-                    if st.button("📖 Show me what I missed →", use_container_width=True):
-                        st.session_state.ar_phase = "relearn"
-                        st.rerun()
+                st.markdown("""<div class="reflection-box"><h4>📋 What's next?</h4>
+                    <p>Now you can see your gaps. Let's test you with targeted questions focusing on what you missed and misunderstood — then we'll show you an updated gap report.</p></div>""", unsafe_allow_html=True)
+                if st.button("❓ Test me with questions →", use_container_width=True):
+                    st.session_state.ar_questions = None
+                    st.session_state.ar_answers = {}
+                    st.session_state.ar_phase = "questions"
+                    st.rerun()
 
     # ── PHASE 4: Questions ──
     elif st.session_state.ar_phase == "questions":
         st.markdown(f"""<div class="recall-phase-box"><div class="recall-phase-title">❓ Step 4: Targeted Questions</div>
-            <div class="ebl-phase-desc">These questions focus on your weakest areas first. If you don't know an answer, select "I don't know" — honest gaps are more useful than guesses.</div></div>""", unsafe_allow_html=True)
+            <div class="ebl-phase-desc">These questions focus on your weakest areas first — the concepts you missed or misunderstood in your recall. If you don't know an answer, select "I don't know" — honest gaps are more useful than guesses.</div></div>""", unsafe_allow_html=True)
 
         # Generate questions if not yet generated
         if st.session_state.ar_questions is None:
@@ -1183,53 +1189,97 @@ Generate targeted questions prioritising missed and misunderstood concepts. Resp
                 submitted = st.form_submit_button("Submit all answers →", use_container_width=True)
 
             if submitted:
-                # Build answers summary for re-analysis
+                # Build answers text for re-analysis
                 answers_text = ""
                 for q in questions:
                     qid = str(q.get("id", ""))
                     ans = st.session_state.ar_answers.get(qid, "")
                     answers_text += f"Q: {q['question']}\nA: {ans}\n\n"
 
-                # Combine free recall + question answers for new analysis
-                combined_recall = f"{st.session_state.ar_free_recall}\n\n--- QUESTION ANSWERS ---\n{answers_text}"
-                st.session_state.ar_free_recall = combined_recall
-                st.session_state.ar_analysis = None
-                st.session_state.ar_phase = "analysis"
+                # Store question answers separately, combine with original recall for updated analysis
+                st.session_state.ar_question_answers = answers_text
+                st.session_state.ar_analysis_post_questions = None
+                st.session_state.ar_phase = "gap_report_2"
                 st.rerun()
 
-    # ── PHASE 5: Re-learn ──
-    elif st.session_state.ar_phase == "relearn":
-        st.markdown(f"""<div class="recall-phase-box"><div class="recall-phase-title">📖 Step 5: Prioritised Re-Learning</div>
-            <div class="ebl-phase-desc">Your study material is re-presented below, reorganised by priority: missed concepts first, then misunderstood, then what you already know. Read carefully, especially the ❌ sections.</div></div>""", unsafe_allow_html=True)
+    # ── PHASE 5: Gap Report 2 (after questions) ──
+    elif st.session_state.ar_phase == "gap_report_2":
+        st.markdown(f"""<div class="recall-phase-box"><div class="recall-phase-title">📊 Step 5: Updated Gap Report</div>
+            <div class="ebl-phase-desc">The AI has re-analysed your knowledge based on both your free recall AND your question answers. Here's your updated picture — see what's improved and what still needs work.</div></div>""", unsafe_allow_html=True)
 
-        # Generate re-learning presentation
-        if "ar_relearn_content" not in st.session_state or st.session_state.ar_relearn_content is None:
-            with st.spinner("Reorganising material based on your knowledge gaps..."):
-                relearn_messages = [{"role": "user", "content": f"""## ORIGINAL STUDY MATERIAL:
+        # Run updated analysis combining recall + question answers
+        if not st.session_state.get("ar_analysis_post_questions"):
+            with st.spinner("Re-analysing based on your recall and question answers..."):
+                combined = f"""## What the student wrote from memory:
+{st.session_state.ar_free_recall}
+
+## How the student answered targeted questions:
+{st.session_state.get('ar_question_answers', '')}"""
+
+                analysis_messages = [{"role": "user", "content": f"""## ORIGINAL STUDY MATERIAL:
 {st.session_state.ar_study_material[:8000]}
 
-## KNOWLEDGE GAP ANALYSIS:
-{json.dumps(st.session_state.ar_analysis, indent=2)}
+## STUDENT'S COMBINED RECALL AND QUESTION ANSWERS (Round {st.session_state.ar_round}):
+{combined}
 
-Re-present the study material prioritised by the student's gaps."""}]
-                result = call_claude(relearn_messages, ACTIVE_RECALL_RELEARN_PROMPT, use_search=False)
-                st.session_state.ar_relearn_content = result
-                st.rerun()
+Analyse this COMBINED recall and question performance against the original material. Identify what they now understand from the questions that they missed in free recall, what they STILL misunderstand, and what they STILL missed. Respond ONLY with valid JSON."""}]
+                result = call_claude_json(analysis_messages, ACTIVE_RECALL_ANALYSIS_PROMPT)
+                if result:
+                    st.session_state.ar_analysis_post_questions = result
+                    st.session_state.ar_history.append({"round": st.session_state.ar_round, "phase": "questions", "score": result.get("round_score", 0)})
+                    st.rerun()
+                else:
+                    st.error("Analysis failed. Please try again.")
+                    if st.button("Retry Analysis"):
+                        st.rerun()
 
-        if st.session_state.get("ar_relearn_content"):
-            render_message("assistant", st.session_state.ar_relearn_content)
+        if st.session_state.get("ar_analysis_post_questions"):
+            post_q = st.session_state.ar_analysis_post_questions
+            pre_q = st.session_state.ar_analysis
+
+            # Show improvement comparison
+            pre_score = pre_q.get("round_score", 0)
+            post_score = post_q.get("round_score", 0)
+            diff = post_score - pre_score
+
+            if diff > 0:
+                st.markdown(f"""<div class="reflection-box"><h4>📈 Progress within this round</h4>
+                    <p>Your score improved from <strong>{pre_score}%</strong> (free recall) to <strong>{post_score}%</strong> (after questions) — that's a <strong>+{diff}%</strong> improvement. The questions helped you retrieve knowledge you couldn't access freely.</p></div>""", unsafe_allow_html=True)
+            elif diff == 0:
+                st.markdown(f"""<div class="reflection-box"><h4>📊 Consistent performance</h4>
+                    <p>Your score held steady at <strong>{post_score}%</strong>. The questions confirmed what your free recall showed.</p></div>""", unsafe_allow_html=True)
+
+            _render_gap_report(post_q, "After recall + questions combined")
+
+            # Full round history
+            if len(st.session_state.ar_history) > 1:
+                st.markdown("**📈 Progress Across All Rounds:**")
+                for h in st.session_state.ar_history:
+                    bar_w = h['score']
+                    bar_c = "#4CAF7D" if h['score'] >= 80 else "#D4A853" if h['score'] >= 60 else "#C44B4B"
+                    phase_label = "Recall" if h.get('phase') == 'recall' else "After Qs"
+                    st.markdown(f"""<div style="display:flex;align-items:center;margin:0.3rem 0;font-size:0.82rem;">
+                        <span style="width:100px;color:var(--text-muted);">R{h['round']} · {phase_label}</span>
+                        <div style="flex:1;height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;">
+                        <div style="width:{bar_w}%;height:100%;background:{bar_c};border-radius:4px;"></div></div>
+                        <span style="width:40px;text-align:right;color:var(--text-secondary);font-weight:600;">{h['score']}%</span></div>""", unsafe_allow_html=True)
 
             st.markdown("<br>", unsafe_allow_html=True)
 
-            st.markdown("""<div class="reflection-box"><h4>🤔 Ready for another round?</h4>
-                <p>When you've finished reading through the material above — especially the ❌ missed sections — you can test yourself again. Each round should show improvement as your brain strengthens the recall pathways.</p></div>""", unsafe_allow_html=True)
+            if post_score >= 95:
+                st.markdown("""<div class="reflection-box"><h4>🎉 Outstanding!</h4>
+                    <p>You've demonstrated comprehensive recall of this material. Consider discussing the trickiest concepts with your tutor to deepen your understanding even further.</p></div>""", unsafe_allow_html=True)
+            else:
+                st.markdown("""<div class="reflection-box"><h4>🔄 Ready for another round?</h4>
+                    <p>Review the gaps above — especially the ❌ missed and ⚠️ misunderstood sections. When you feel ready, start a new round. Each cycle strengthens your recall pathways.</p></div>""", unsafe_allow_html=True)
 
-            if st.button("🔄 Test myself again →", use_container_width=True):
-                st.session_state.ar_round += 1
-                st.session_state.ar_phase = "free_recall"
-                st.session_state.ar_free_recall = None
-                st.session_state.ar_analysis = None
-                st.session_state.ar_questions = None
-                st.session_state.ar_answers = {}
-                st.session_state.ar_relearn_content = None
-                st.rerun()
+                if st.button("🔄 Start next round →", use_container_width=True):
+                    st.session_state.ar_round += 1
+                    st.session_state.ar_phase = "free_recall"
+                    st.session_state.ar_free_recall = None
+                    st.session_state.ar_analysis = None
+                    st.session_state.ar_analysis_post_questions = None
+                    st.session_state.ar_questions = None
+                    st.session_state.ar_answers = {}
+                    st.session_state.ar_question_answers = None
+                    st.rerun()
