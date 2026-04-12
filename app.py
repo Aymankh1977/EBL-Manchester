@@ -11,7 +11,6 @@ import anthropic
 import json
 import re
 from datetime import datetime
-from urllib.parse import quote
 
 # ─── Page Config ───
 st.set_page_config(
@@ -1313,88 +1312,75 @@ elif st.session_state.mode == "feedback":
     if st.session_state.feedback_submitted:
         st.markdown("""<div class="reflection-box">
             <h4>✅ Thank you for your feedback!</h4>
-            <p>Your responses have been prepared. Please click the email link that opened (or the button below) to send them.
-            Your input helps us build a better learning platform for all students.</p>
+            <p>Your feedback has been sent successfully to the DentEdTech™ development team.
+            Your input directly shapes future improvements to this platform.</p>
         </div>""", unsafe_allow_html=True)
         if st.button("← Back to Mode Selection", use_container_width=True, key="btn_feedback_back"):
             st.session_state.mode = None
             st.session_state.feedback_submitted = False
             st.rerun()
     else:
-        with st.form("feedback_form"):
-            st.markdown("##### About You *(optional)*")
-            fb_name = st.text_input("Your name", placeholder="Optional — you can remain anonymous")
-            fb_email = st.text_input("Your email", placeholder="Optional — only if you'd like a response")
-            fb_discipline = st.selectbox("Your discipline", ["Dentistry", "Medicine", "Pharmacology", "Other"], index=0, key="fb_disc")
-            fb_year = st.selectbox("Year of study", ["Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Postgraduate", "Faculty/Staff"], index=2, key="fb_year")
+        # Get EmailJS credentials from secrets
+        try:
+            emailjs_service = st.secrets["EMAILJS_SERVICE_ID"]
+            emailjs_template = st.secrets["EMAILJS_TEMPLATE_ID"]
+            emailjs_public_key = st.secrets["EMAILJS_PUBLIC_KEY"]
+            emailjs_configured = True
+        except (KeyError, FileNotFoundError):
+            emailjs_configured = False
 
-            st.markdown("---")
-            st.markdown("##### Which features did you use? *(select all that apply)*")
-            used_evidence = st.checkbox("🔬 Evidence-Based Knowledge", key="fb_used_evidence")
-            used_ebl = st.checkbox("🧭 Enquiry-Based Learning", key="fb_used_ebl")
-            used_video = st.checkbox("🎥 Clinical Video Trust Engine", key="fb_used_video")
-            used_recall = st.checkbox("🧠 Active Recall", key="fb_used_recall")
+        if not emailjs_configured:
+            st.warning("Feedback email service is not configured. Please contact the administrator.")
 
-            st.markdown("---")
-            st.markdown("##### Your Feedback")
+        # Render the feedback form entirely in HTML with EmailJS
+        st.markdown("##### About You *(optional)*")
+        fb_name = st.text_input("Your name", placeholder="Optional — you can remain anonymous", key="fb_name")
+        fb_email = st.text_input("Your email", placeholder="Optional — only if you'd like a response", key="fb_email")
+        fb_discipline = st.selectbox("Your discipline", ["Dentistry", "Medicine", "Pharmacology", "Other"], index=0, key="fb_disc")
+        fb_year = st.selectbox("Year of study", ["Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Postgraduate", "Faculty/Staff"], index=2, key="fb_year")
 
-            fb_worked = st.text_area(
-                "What worked well?",
-                height=120,
-                placeholder="Which features were most useful? What did you enjoy? What helped your learning?",
-                key="fb_worked",
-            )
+        st.markdown("---")
+        st.markdown("##### Which features did you use? *(select all that apply)*")
+        used_evidence = st.checkbox("🔬 Evidence-Based Knowledge", key="fb_used_evidence")
+        used_ebl = st.checkbox("🧭 Enquiry-Based Learning", key="fb_used_ebl")
+        used_video = st.checkbox("🎥 Clinical Video Trust Engine", key="fb_used_video")
+        used_recall = st.checkbox("🧠 Active Recall", key="fb_used_recall")
 
-            fb_improve = st.text_area(
-                "What needs improvement?",
-                height=120,
-                placeholder="What was confusing, frustrating, or unhelpful? What didn't work as expected?",
-                key="fb_improve",
-            )
+        st.markdown("---")
+        st.markdown("##### Your Feedback")
 
-            fb_suggestions = st.text_area(
-                "How could we improve it? Any suggestions or new features you'd like?",
-                height=120,
-                placeholder="Be as specific as possible — your ideas directly shape the next version.",
-                key="fb_suggestions",
-            )
+        fb_worked = st.text_area("What worked well?", height=120,
+            placeholder="Which features were most useful? What did you enjoy? What helped your learning?", key="fb_worked")
+        fb_improve = st.text_area("What needs improvement?", height=120,
+            placeholder="What was confusing, frustrating, or unhelpful? What didn't work as expected?", key="fb_improve")
+        fb_suggestions = st.text_area("How could we improve it? Any suggestions or new features you'd like?", height=120,
+            placeholder="Be as specific as possible — your ideas directly shape the next version.", key="fb_suggestions")
 
-            st.markdown("---")
-            st.markdown("##### Overall Experience")
+        st.markdown("---")
+        st.markdown("##### Overall Experience")
 
-            fb_rating = st.select_slider(
-                "Overall rating",
-                options=["1 — Poor", "2 — Below Average", "3 — Average", "4 — Good", "5 — Excellent"],
-                value="3 — Average",
-                key="fb_rating",
-            )
+        fb_rating = st.select_slider("Overall rating",
+            options=["1 — Poor", "2 — Below Average", "3 — Average", "4 — Good", "5 — Excellent"],
+            value="3 — Average", key="fb_rating")
+        fb_recommend = st.radio("Would you recommend DentEdTech™ to a fellow student?",
+            options=["Definitely yes", "Probably yes", "Not sure", "Probably not", "Definitely not"],
+            index=2, key="fb_recommend")
+        fb_additional = st.text_area("Anything else you'd like to tell us?", height=80,
+            placeholder="Any additional comments, concerns, or praise.", key="fb_additional")
 
-            fb_recommend = st.radio(
-                "Would you recommend DentEdTech™ to a fellow student?",
-                options=["Definitely yes", "Probably yes", "Not sure", "Probably not", "Definitely not"],
-                index=2,
-                key="fb_recommend",
-            )
+        if st.button("Submit Feedback →", use_container_width=True, key="btn_submit_feedback"):
+            if not emailjs_configured:
+                st.error("Email service not configured. Please contact the administrator.")
+            else:
+                # Build features list
+                features_used = []
+                if used_evidence: features_used.append("Evidence-Based Knowledge")
+                if used_ebl: features_used.append("Enquiry-Based Learning")
+                if used_video: features_used.append("Clinical Video Trust Engine")
+                if used_recall: features_used.append("Active Recall")
 
-            fb_additional = st.text_area(
-                "Anything else you'd like to tell us?",
-                height=80,
-                placeholder="Any additional comments, concerns, or praise.",
-                key="fb_additional",
-            )
-
-            submitted = st.form_submit_button("Submit Feedback →", use_container_width=True)
-
-        if submitted:
-            # Build features used list
-            features_used = []
-            if used_evidence: features_used.append("Evidence-Based Knowledge")
-            if used_ebl: features_used.append("Enquiry-Based Learning")
-            if used_video: features_used.append("Clinical Video Trust Engine")
-            if used_recall: features_used.append("Active Recall")
-
-            # Build email body
-            email_body = f"""DentEdTech™ Platform Feedback
+                # Build the full message
+                message_body = f"""DentEdTech™ Platform Feedback
 ================================
 Submitted: {datetime.now().strftime('%Y-%m-%d %H:%M')}
 
@@ -1426,44 +1412,52 @@ ADDITIONAL COMMENTS
 {fb_additional or 'No response'}
 
 ================================
-Sent from DentEdTech™ Evidence Engine
-"""
+Sent from DentEdTech™ Evidence Engine"""
 
-            email_subject = f"DentEdTech™ Feedback — {fb_discipline} {fb_year} — {datetime.now().strftime('%d/%m/%Y')}"
+                from_name = fb_name or "Anonymous Student"
+                from_email = fb_email or "noreply@dentedtech.app"
 
-            # Build mailto link
-            mailto_link = f"mailto:ayman.khalifah@manchester.ac.uk?subject={quote(email_subject)}&body={quote(email_body)}"
+                # Escape for JavaScript
+                js_name = json.dumps(from_name)
+                js_email = json.dumps(from_email)
+                js_message = json.dumps(message_body)
 
-            st.session_state.feedback_submitted = True
-
-            # Show success and email link
-            st.markdown(f"""<div class="reflection-box">
-                <h4>✅ Feedback ready to send!</h4>
-                <p>Click the button below to open your email client with the feedback pre-filled. Just press Send.</p>
-            </div>""", unsafe_allow_html=True)
-
-            st.markdown(f"""
-            <a href="{mailto_link}" target="_blank" style="
-                display: inline-block;
-                width: 100%;
-                text-align: center;
-                padding: 0.8rem 1.5rem;
-                background-color: #1B4D3E;
-                color: #E8EDE9;
-                border: 1px solid #2D7A5F;
-                border-radius: 8px;
-                font-family: 'DM Sans', sans-serif;
-                font-weight: 600;
-                font-size: 0.95rem;
-                text-decoration: none;
-                margin-top: 1rem;
-                transition: background 0.2s ease;
-            ">📧 Open Email &amp; Send Feedback</a>
-            """, unsafe_allow_html=True)
-
-            st.markdown(f"""<div style="margin-top:1rem; font-size:0.78rem; color:var(--text-muted); text-align:center;">
-                Feedback will be sent to <strong>ayman.khalifah@manchester.ac.uk</strong><br>
-                If the button doesn't open your email, you can copy the feedback above and email it manually.
-            </div>""", unsafe_allow_html=True)
-
-            st.rerun()
+                # Inject EmailJS script and send
+                emailjs_html = f"""
+                <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+                <div id="emailjs-status" style="
+                    text-align: center; padding: 1.2rem; margin: 1rem 0;
+                    border-radius: 10px; font-family: 'DM Sans', sans-serif;
+                    font-size: 0.9rem;
+                    background: rgba(212, 168, 83, 0.08);
+                    border: 1px solid rgba(212, 168, 83, 0.25);
+                    color: #D4A853;
+                ">⏳ Sending your feedback...</div>
+                <script>
+                (function() {{
+                    emailjs.init({{ publicKey: "{emailjs_public_key}" }});
+                    emailjs.send("{emailjs_service}", "{emailjs_template}", {{
+                        from_name: {js_name},
+                        from_email: {js_email},
+                        message: {js_message},
+                    }}).then(
+                        function(response) {{
+                            var el = document.getElementById("emailjs-status");
+                            el.style.background = "rgba(76, 175, 125, 0.1)";
+                            el.style.borderColor = "rgba(76, 175, 125, 0.3)";
+                            el.style.color = "#4CAF7D";
+                            el.innerHTML = "✅ <strong>Feedback sent successfully!</strong><br><span style='font-size:0.8rem;'>Thank you — your input shapes the next version of DentEdTech™.</span>";
+                        }},
+                        function(error) {{
+                            var el = document.getElementById("emailjs-status");
+                            el.style.background = "rgba(196, 75, 75, 0.1)";
+                            el.style.borderColor = "rgba(196, 75, 75, 0.3)";
+                            el.style.color = "#C44B4B";
+                            el.innerHTML = "❌ <strong>Failed to send.</strong> Please email your feedback manually to ayman.khalifah@manchester.ac.uk";
+                        }}
+                    );
+                }})();
+                </script>
+                """
+                st.components.v1.html(emailjs_html, height=100)
+                st.session_state.feedback_submitted = True
