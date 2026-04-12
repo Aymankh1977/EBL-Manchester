@@ -11,6 +11,7 @@ import anthropic
 import json
 import re
 from datetime import datetime
+from urllib.parse import quote
 
 # ─── Page Config ───
 st.set_page_config(
@@ -587,6 +588,8 @@ def init_session():
         "ar_round": 1,
         "ar_history": [],
         "ar_messages": [],
+        # Feedback
+        "feedback_submitted": False,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -881,6 +884,14 @@ with st.sidebar:
                         del st.session_state[k]
                 init_session()
             st.rerun()
+
+    st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
+
+    # Feedback button — always visible
+    if st.button("💬 Give Feedback", use_container_width=True, key="btn_feedback_sidebar"):
+        st.session_state.mode = "feedback"
+        st.session_state.feedback_submitted = False
+        st.rerun()
 
     st.markdown("""<div class="app-footer">© 2026 DentEdTech™<br>University of Manchester<br><em>Not a substitute for clinical judgement</em></div>""", unsafe_allow_html=True)
 
@@ -1283,3 +1294,176 @@ Analyse this COMBINED recall and question performance against the original mater
                     st.session_state.ar_answers = {}
                     st.session_state.ar_question_answers = None
                     st.rerun()
+
+
+# ─── Feedback Mode ───
+elif st.session_state.mode == "feedback":
+
+    st.markdown(f"""<div style="margin-bottom:1.5rem;">
+        <span style="font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--text-primary);">
+        💬 Platform Feedback</span></div>""", unsafe_allow_html=True)
+
+    st.markdown("""<div class="ebl-phase">
+        <div class="ebl-phase-title">Help Us Improve DentEdTech™</div>
+        <div class="ebl-phase-desc">Your feedback is essential for improving this platform's performance and credibility.
+        Please be as honest and specific as possible — constructive criticism is especially valuable.
+        Your responses will be sent directly to the development team.</div>
+    </div>""", unsafe_allow_html=True)
+
+    if st.session_state.feedback_submitted:
+        st.markdown("""<div class="reflection-box">
+            <h4>✅ Thank you for your feedback!</h4>
+            <p>Your responses have been prepared. Please click the email link that opened (or the button below) to send them.
+            Your input helps us build a better learning platform for all students.</p>
+        </div>""", unsafe_allow_html=True)
+        if st.button("← Back to Mode Selection", use_container_width=True, key="btn_feedback_back"):
+            st.session_state.mode = None
+            st.session_state.feedback_submitted = False
+            st.rerun()
+    else:
+        with st.form("feedback_form"):
+            st.markdown("##### About You *(optional)*")
+            fb_name = st.text_input("Your name", placeholder="Optional — you can remain anonymous")
+            fb_email = st.text_input("Your email", placeholder="Optional — only if you'd like a response")
+            fb_discipline = st.selectbox("Your discipline", ["Dentistry", "Medicine", "Pharmacology", "Other"], index=0, key="fb_disc")
+            fb_year = st.selectbox("Year of study", ["Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Postgraduate", "Faculty/Staff"], index=2, key="fb_year")
+
+            st.markdown("---")
+            st.markdown("##### Which features did you use? *(select all that apply)*")
+            used_evidence = st.checkbox("🔬 Evidence-Based Knowledge", key="fb_used_evidence")
+            used_ebl = st.checkbox("🧭 Enquiry-Based Learning", key="fb_used_ebl")
+            used_video = st.checkbox("🎥 Clinical Video Trust Engine", key="fb_used_video")
+            used_recall = st.checkbox("🧠 Active Recall", key="fb_used_recall")
+
+            st.markdown("---")
+            st.markdown("##### Your Feedback")
+
+            fb_worked = st.text_area(
+                "What worked well?",
+                height=120,
+                placeholder="Which features were most useful? What did you enjoy? What helped your learning?",
+                key="fb_worked",
+            )
+
+            fb_improve = st.text_area(
+                "What needs improvement?",
+                height=120,
+                placeholder="What was confusing, frustrating, or unhelpful? What didn't work as expected?",
+                key="fb_improve",
+            )
+
+            fb_suggestions = st.text_area(
+                "How could we improve it? Any suggestions or new features you'd like?",
+                height=120,
+                placeholder="Be as specific as possible — your ideas directly shape the next version.",
+                key="fb_suggestions",
+            )
+
+            st.markdown("---")
+            st.markdown("##### Overall Experience")
+
+            fb_rating = st.select_slider(
+                "Overall rating",
+                options=["1 — Poor", "2 — Below Average", "3 — Average", "4 — Good", "5 — Excellent"],
+                value="3 — Average",
+                key="fb_rating",
+            )
+
+            fb_recommend = st.radio(
+                "Would you recommend DentEdTech™ to a fellow student?",
+                options=["Definitely yes", "Probably yes", "Not sure", "Probably not", "Definitely not"],
+                index=2,
+                key="fb_recommend",
+            )
+
+            fb_additional = st.text_area(
+                "Anything else you'd like to tell us?",
+                height=80,
+                placeholder="Any additional comments, concerns, or praise.",
+                key="fb_additional",
+            )
+
+            submitted = st.form_submit_button("Submit Feedback →", use_container_width=True)
+
+        if submitted:
+            # Build features used list
+            features_used = []
+            if used_evidence: features_used.append("Evidence-Based Knowledge")
+            if used_ebl: features_used.append("Enquiry-Based Learning")
+            if used_video: features_used.append("Clinical Video Trust Engine")
+            if used_recall: features_used.append("Active Recall")
+
+            # Build email body
+            email_body = f"""DentEdTech™ Platform Feedback
+================================
+Submitted: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+
+ABOUT THE USER
+Name: {fb_name or 'Anonymous'}
+Email: {fb_email or 'Not provided'}
+Discipline: {fb_discipline}
+Year: {fb_year}
+
+FEATURES USED
+{', '.join(features_used) if features_used else 'None selected'}
+
+WHAT WORKED WELL
+{fb_worked or 'No response'}
+
+WHAT NEEDS IMPROVEMENT
+{fb_improve or 'No response'}
+
+SUGGESTIONS FOR IMPROVEMENT
+{fb_suggestions or 'No response'}
+
+OVERALL RATING
+{fb_rating}
+
+WOULD RECOMMEND
+{fb_recommend}
+
+ADDITIONAL COMMENTS
+{fb_additional or 'No response'}
+
+================================
+Sent from DentEdTech™ Evidence Engine
+"""
+
+            email_subject = f"DentEdTech™ Feedback — {fb_discipline} {fb_year} — {datetime.now().strftime('%d/%m/%Y')}"
+
+            # Build mailto link
+            mailto_link = f"mailto:ayman.khalifah@manchester.ac.uk?subject={quote(email_subject)}&body={quote(email_body)}"
+
+            st.session_state.feedback_submitted = True
+
+            # Show success and email link
+            st.markdown(f"""<div class="reflection-box">
+                <h4>✅ Feedback ready to send!</h4>
+                <p>Click the button below to open your email client with the feedback pre-filled. Just press Send.</p>
+            </div>""", unsafe_allow_html=True)
+
+            st.markdown(f"""
+            <a href="{mailto_link}" target="_blank" style="
+                display: inline-block;
+                width: 100%;
+                text-align: center;
+                padding: 0.8rem 1.5rem;
+                background-color: #1B4D3E;
+                color: #E8EDE9;
+                border: 1px solid #2D7A5F;
+                border-radius: 8px;
+                font-family: 'DM Sans', sans-serif;
+                font-weight: 600;
+                font-size: 0.95rem;
+                text-decoration: none;
+                margin-top: 1rem;
+                transition: background 0.2s ease;
+            ">📧 Open Email &amp; Send Feedback</a>
+            """, unsafe_allow_html=True)
+
+            st.markdown(f"""<div style="margin-top:1rem; font-size:0.78rem; color:var(--text-muted); text-align:center;">
+                Feedback will be sent to <strong>ayman.khalifah@manchester.ac.uk</strong><br>
+                If the button doesn't open your email, you can copy the feedback above and email it manually.
+            </div>""", unsafe_allow_html=True)
+
+            st.rerun()
