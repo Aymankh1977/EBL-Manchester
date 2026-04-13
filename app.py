@@ -28,20 +28,20 @@ st.markdown("""
 :root {
     --primary: #1B4D3E;
     --primary-light: #2D7A5F;
-    --accent: #D4A853;
-    --accent-light: #E8C97A;
+    --accent: #E8C067;
+    --accent-light: #F0D48A;
     --bg-dark: #0F1A16;
     --bg-card: #162520;
     --bg-card-hover: #1C3029;
-    --text-primary: #E8EDE9;
-    --text-secondary: #9BAFA3;
-    --text-muted: #6B8577;
+    --text-primary: #F5F8F6;
+    --text-secondary: #C8D8CE;
+    --text-muted: #99B3A5;
     --border: #2D4A3E;
-    --danger: #C44B4B;
-    --warning: #D4A853;
-    --success: #4CAF7D;
-    --video-red: #E04040;
-    --recall-purple: #9B72CF;
+    --danger: #E06060;
+    --warning: #E8C067;
+    --success: #5FCC8F;
+    --video-red: #E85050;
+    --recall-purple: #B48DE0;
 }
 
 .stApp {
@@ -103,9 +103,31 @@ section[data-testid="stSidebar"] label {
 }
 section[data-testid="stSidebar"] h1,
 section[data-testid="stSidebar"] h2,
-section[data-testid="stSidebar"] h3 {
+section[data-testid="stSidebar"] h3,
+section[data-testid="stSidebar"] h4,
+section[data-testid="stSidebar"] h5 {
     color: var(--text-primary) !important;
     font-family: 'DM Serif Display', serif !important;
+}
+/* Sidebar selectbox and input text */
+section[data-testid="stSidebar"] .stSelectbox label,
+section[data-testid="stSidebar"] .stTextInput label,
+section[data-testid="stSidebar"] .stTextArea label {
+    color: var(--text-secondary) !important;
+}
+section[data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] span,
+section[data-testid="stSidebar"] .stSelectbox svg {
+    color: var(--text-primary) !important;
+    fill: var(--text-primary) !important;
+}
+/* Sidebar button text */
+section[data-testid="stSidebar"] .stButton > button {
+    color: var(--text-primary) !important;
+}
+/* Sidebar expander text */
+section[data-testid="stSidebar"] .streamlit-expanderHeader p,
+section[data-testid="stSidebar"] .streamlit-expanderHeader span {
+    color: var(--text-primary) !important;
 }
 
 .mode-card {
@@ -143,10 +165,10 @@ section[data-testid="stSidebar"] h3 {
     margin-right: 6px;
     margin-bottom: 4px;
 }
-.pillar-r { background: rgba(76, 175, 125, 0.15); color: #4CAF7D; border: 1px solid rgba(76, 175, 125, 0.3); }
-.pillar-e { background: rgba(212, 168, 83, 0.15); color: #D4A853; border: 1px solid rgba(212, 168, 83, 0.3); }
-.pillar-a { background: rgba(100, 149, 237, 0.15); color: #6495ED; border: 1px solid rgba(100, 149, 237, 0.3); }
-.pillar-l { background: rgba(196, 75, 75, 0.15); color: #E07070; border: 1px solid rgba(196, 75, 75, 0.3); }
+.pillar-r { background: rgba(95, 204, 143, 0.15); color: #5FCC8F; border: 1px solid rgba(95, 204, 143, 0.3); }
+.pillar-e { background: rgba(232, 192, 103, 0.15); color: #E8C067; border: 1px solid rgba(232, 192, 103, 0.3); }
+.pillar-a { background: rgba(120, 170, 255, 0.15); color: #78AAFF; border: 1px solid rgba(120, 170, 255, 0.3); }
+.pillar-l { background: rgba(224, 96, 96, 0.15); color: #F08080; border: 1px solid rgba(224, 96, 96, 0.3); }
 
 .chat-msg {
     padding: 1.2rem 1.5rem;
@@ -314,7 +336,7 @@ section[data-testid="stSidebar"] h3 {
 .idk-button {
     background: rgba(196, 75, 75, 0.12) !important;
     border: 1px solid rgba(196, 75, 75, 0.3) !important;
-    color: #E07070 !important;
+    color: #F08080 !important;
 }
 
 .recall-round-badge {
@@ -765,11 +787,11 @@ def _render_gap_report(analysis, context_label):
     score = a.get("round_score", 0)
 
     if score >= 80:
-        score_color = "#4CAF7D"
+        score_color = "#5FCC8F"
     elif score >= 60:
-        score_color = "#D4A853"
+        score_color = "#E8C067"
     else:
-        score_color = "#C44B4B"
+        score_color = "#E06060"
 
     r, g, b = int(score_color[1:3], 16), int(score_color[3:5], 16), int(score_color[5:7], 16)
     st.markdown(f"""<div style="text-align:center;margin:1.5rem 0;">
@@ -817,10 +839,10 @@ def _render_gap_report(analysis, context_label):
 with st.sidebar:
     st.markdown("""
     <div style="text-align:center; padding: 1rem 0 0.5rem;">
-        <span style="font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: #E8EDE9;">
-            Dent<span style="color: #D4A853;">Ed</span>Tech™
+        <span style="font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: #F5F8F6;">
+            Dent<span style="color: #E8C067;">Ed</span>Tech™
         </span>
-        <div style="font-size: 0.72rem; color: #6B8577; margin-top: 0.2rem; letter-spacing: 0.08em; text-transform: uppercase;">
+        <div style="font-size: 0.72rem; color: #99B3A5; margin-top: 0.2rem; letter-spacing: 0.08em; text-transform: uppercase;">
             Evidence Engine
         </div>
     </div>
@@ -1266,7 +1288,7 @@ Analyse this COMBINED recall and question performance against the original mater
                 st.markdown("**📈 Progress Across All Rounds:**")
                 for h in st.session_state.ar_history:
                     bar_w = h['score']
-                    bar_c = "#4CAF7D" if h['score'] >= 80 else "#D4A853" if h['score'] >= 60 else "#C44B4B"
+                    bar_c = "#5FCC8F" if h['score'] >= 80 else "#E8C067" if h['score'] >= 60 else "#E06060"
                     phase_label = "Recall" if h.get('phase') == 'recall' else "After Qs"
                     st.markdown(f"""<div style="display:flex;align-items:center;margin:0.3rem 0;font-size:0.82rem;">
                         <span style="width:100px;color:var(--text-muted);">R{h['round']} · {phase_label}</span>
@@ -1431,7 +1453,7 @@ Sent from DentEdTech™ Evidence Engine"""
                     font-size: 0.9rem;
                     background: rgba(212, 168, 83, 0.08);
                     border: 1px solid rgba(212, 168, 83, 0.25);
-                    color: #D4A853;
+                    color: #E8C067;
                 ">⏳ Sending your feedback...</div>
                 <script>
                 (function() {{
@@ -1445,14 +1467,14 @@ Sent from DentEdTech™ Evidence Engine"""
                             var el = document.getElementById("emailjs-status");
                             el.style.background = "rgba(76, 175, 125, 0.1)";
                             el.style.borderColor = "rgba(76, 175, 125, 0.3)";
-                            el.style.color = "#4CAF7D";
+                            el.style.color = "#5FCC8F";
                             el.innerHTML = "✅ <strong>Feedback sent successfully!</strong><br><span style='font-size:0.8rem;'>Thank you — your input shapes the next version of DentEdTech™.</span>";
                         }},
                         function(error) {{
                             var el = document.getElementById("emailjs-status");
                             el.style.background = "rgba(196, 75, 75, 0.1)";
                             el.style.borderColor = "rgba(196, 75, 75, 0.3)";
-                            el.style.color = "#C44B4B";
+                            el.style.color = "#E06060";
                             el.innerHTML = "❌ <strong>Failed to send.</strong> Please email your feedback manually to ayman.khalifah@manchester.ac.uk";
                         }}
                     );
