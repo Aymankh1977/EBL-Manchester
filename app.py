@@ -566,6 +566,58 @@ End with: "When you're ready, we'll test you again on the areas you struggled wi
 - Keep the re-presentation focused and scannable"""
 
 
+ACTIVE_RECALL_GRADE_ANSWERS_PROMPT = """You are the DentEdTech™ Active Recall Answer Grader. You grade a student's answers to targeted questions by comparing them against the original study material.
+
+## YOUR TASK
+You will receive:
+1. The ORIGINAL STUDY MATERIAL
+2. The QUESTIONS that were asked
+3. The STUDENT'S ANSWERS to each question
+4. The INITIAL GAP ANALYSIS from their free recall (so you know their starting point)
+
+## GRADING RULES
+For each question-answer pair, provide:
+- Whether the answer is CORRECT, PARTIALLY CORRECT, INCORRECT, or the student said "I DON'T KNOW"
+- The correct answer from the study material
+- A brief explanation of what was right or wrong
+- Whether this represents an IMPROVEMENT from their initial recall (they got it wrong before but right now), CONSISTENT (same as before), or REGRESSION (they knew it before but got it wrong now)
+
+## RESPONSE FORMAT
+You MUST respond in valid JSON:
+```json
+{
+    "graded_answers": [
+        {
+            "question_id": 1,
+            "question": "The question text",
+            "student_answer": "What the student wrote",
+            "verdict": "correct",
+            "correct_answer": "The correct answer from the study material",
+            "explanation": "Brief explanation of why this is correct/incorrect",
+            "improvement_status": "improved",
+            "concept": "Name of concept tested"
+        }
+    ],
+    "questions_correct": 5,
+    "questions_partial": 1,
+    "questions_incorrect": 1,
+    "questions_idk": 1,
+    "total_questions": 8,
+    "overall_feedback": "Brief encouraging summary of performance on these questions"
+}
+```
+
+verdict must be one of: "correct", "partially_correct", "incorrect", "i_dont_know"
+improvement_status must be one of: "improved", "consistent", "regression", "new_knowledge"
+
+## CRITICAL RULES
+- Grade fairly: if the student conveys the right idea in different words, mark as correct
+- Be specific about what's wrong in partially correct answers
+- For "I DON'T KNOW" answers, don't penalise — it's honest and shows the student knows their limits
+- Always provide the correct answer so the student can learn from each question
+- Do NOT include any text outside the JSON block"""
+
+
 # ─── Trusted Channel Registry ───
 TRUSTED_CHANNELS = {
     "university": [
@@ -724,9 +776,9 @@ def render_knowledge_bar(label, count, total, color_class):
 
 def render_recall_phase_stepper(current_phase):
     phases = [("upload", "📄 Upload"), ("free_recall", "✍️ Recall"), ("gap_report_1", "📊 Gaps"),
-              ("questions", "❓ Questions"), ("gap_report_2", "📊 Updated Gaps")]
+              ("questions", "❓ Questions"), ("q_feedback", "📝 Feedback"), ("gap_report_2", "📊 Final")]
     html = '<div class="phase-stepper">'
-    phase_order = ["upload", "free_recall", "gap_report_1", "questions", "gap_report_2"]
+    phase_order = ["upload", "free_recall", "gap_report_1", "questions", "q_feedback", "gap_report_2"]
     current_idx = phase_order.index(current_phase) if current_phase in phase_order else 0
     for i, (key, label) in enumerate(phases):
         if i < current_idx:
@@ -880,7 +932,7 @@ with st.sidebar:
             elif st.session_state.mode == "recall":
                 for k in ["ar_phase", "ar_study_material", "ar_file_name", "ar_free_recall",
                            "ar_analysis", "ar_analysis_post_questions", "ar_question_answers",
-                           "ar_questions", "ar_answers", "ar_round",
+                           "ar_graded_answers", "ar_questions", "ar_answers", "ar_round",
                            "ar_history", "ar_messages", "ar_relearn_content"]:
                     if k in st.session_state:
                         del st.session_state[k]
@@ -899,7 +951,7 @@ with st.sidebar:
             elif st.session_state.mode == "recall":
                 for k in ["ar_phase", "ar_study_material", "ar_file_name", "ar_free_recall",
                            "ar_analysis", "ar_analysis_post_questions", "ar_question_answers",
-                           "ar_questions", "ar_answers", "ar_round",
+                           "ar_graded_answers", "ar_questions", "ar_answers", "ar_round",
                            "ar_history", "ar_messages", "ar_relearn_content"]:
                     if k in st.session_state:
                         del st.session_state[k]
@@ -1221,15 +1273,119 @@ Generate targeted questions prioritising missed and misunderstood concepts. Resp
                 submitted = st.form_submit_button("Submit all answers →", use_container_width=True)
 
             if submitted:
-                # Build answers text for re-analysis
+                # Build answers text
                 answers_text = ""
                 for q in questions:
                     qid = str(q.get("id", ""))
                     ans = st.session_state.ar_answers.get(qid, "")
                     answers_text += f"Q: {q['question']}\nA: {ans}\n\n"
 
-                # Store question answers separately, combine with original recall for updated analysis
                 st.session_state.ar_question_answers = answers_text
+                st.session_state.ar_graded_answers = None
+                st.session_state.ar_phase = "q_feedback"
+                st.rerun()
+
+    # ── PHASE 4b: Question Feedback ──
+    elif st.session_state.ar_phase == "q_feedback":
+        st.markdown(f"""<div class="recall-phase-box"><div class="recall-phase-title">📝 Step 4b: Question Feedback</div>
+            <div class="ebl-phase-desc">Here's how you did on each question — what was right, what was wrong, and the correct answers so you can learn from each one.</div></div>""", unsafe_allow_html=True)
+
+        # Grade answers if not done yet
+        if not st.session_state.get("ar_graded_answers"):
+            with st.spinner("Grading your answers..."):
+                # Build question list for grading
+                questions_for_grading = ""
+                qs_data = st.session_state.ar_questions.get("questions", [])
+                for q in qs_data:
+                    qid = str(q.get("id", ""))
+                    ans = st.session_state.ar_answers.get(qid, "")
+                    questions_for_grading += f"Question {qid}: {q['question']}\nConcept: {q.get('concept', '')}\nStudent Answer: {ans}\n\n"
+
+                grade_messages = [{"role": "user", "content": f"""## ORIGINAL STUDY MATERIAL:
+{st.session_state.ar_study_material[:6000]}
+
+## INITIAL GAP ANALYSIS (from free recall):
+Understood: {json.dumps(st.session_state.ar_analysis.get('understood', []), indent=2)}
+Misunderstood: {json.dumps(st.session_state.ar_analysis.get('misunderstood', []), indent=2)}
+Missed: {json.dumps(st.session_state.ar_analysis.get('missed', []), indent=2)}
+
+## QUESTIONS AND STUDENT ANSWERS:
+{questions_for_grading}
+
+Grade each answer against the study material. Respond ONLY with valid JSON."""}]
+
+                result = call_claude_json(grade_messages, ACTIVE_RECALL_GRADE_ANSWERS_PROMPT)
+                if result:
+                    st.session_state.ar_graded_answers = result
+                    st.rerun()
+                else:
+                    st.error("Grading failed. Please try again.")
+                    if st.button("Retry Grading"):
+                        st.rerun()
+
+        if st.session_state.get("ar_graded_answers"):
+            graded = st.session_state.ar_graded_answers
+
+            # Summary stats
+            correct = graded.get("questions_correct", 0)
+            partial = graded.get("questions_partial", 0)
+            incorrect = graded.get("questions_incorrect", 0)
+            idk = graded.get("questions_idk", 0)
+            total_q = graded.get("total_questions", 0)
+
+            st.markdown(f"""<div style="text-align:center;margin:1rem 0;">
+                <span style="font-size:1.4rem;margin:0 0.8rem;">✅ {correct}</span>
+                <span style="font-size:1.4rem;margin:0 0.8rem;">⚠️ {partial}</span>
+                <span style="font-size:1.4rem;margin:0 0.8rem;">❌ {incorrect}</span>
+                <span style="font-size:1.4rem;margin:0 0.8rem;">🚫 {idk}</span>
+                <div style="color:var(--text-muted);font-size:0.82rem;margin-top:0.4rem;">out of {total_q} questions</div>
+            </div>""", unsafe_allow_html=True)
+
+            st.markdown(f"""<div style="color:var(--text-secondary);text-align:center;margin-bottom:1.5rem;font-size:0.88rem;">
+                {graded.get('overall_feedback', '')}</div>""", unsafe_allow_html=True)
+
+            # Show each graded answer
+            for ga in graded.get("graded_answers", []):
+                verdict = ga.get("verdict", "")
+                if verdict == "correct":
+                    icon, border_color, label = "✅", "#5FCC8F", "CORRECT"
+                elif verdict == "partially_correct":
+                    icon, border_color, label = "⚠️", "#E8C067", "PARTIALLY CORRECT"
+                elif verdict == "i_dont_know":
+                    icon, border_color, label = "🚫", "#99B3A5", "I DON'T KNOW"
+                else:
+                    icon, border_color, label = "❌", "#E06060", "INCORRECT"
+
+                improvement = ga.get("improvement_status", "")
+                imp_badge = ""
+                if improvement == "improved":
+                    imp_badge = '<span style="font-size:0.7rem;color:#5FCC8F;font-weight:600;margin-left:8px;">↑ IMPROVED</span>'
+                elif improvement == "regression":
+                    imp_badge = '<span style="font-size:0.7rem;color:#E06060;font-weight:600;margin-left:8px;">↓ REGRESSION</span>'
+
+                st.markdown(f"""<div style="background:var(--bg-card);border:1px solid var(--border);border-left:4px solid {border_color};
+                    border-radius:10px;padding:1rem 1.2rem;margin-bottom:1rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                        <strong style="color:var(--text-primary);">{icon} Q{ga.get('question_id','')}: {ga.get('question','')}</strong>
+                        <span style="font-size:0.72rem;font-weight:700;color:{border_color};">{label}{imp_badge}</span>
+                    </div>
+                    <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.4rem;">
+                        <strong>Your answer:</strong> {ga.get('student_answer', 'No answer') or 'No answer'}
+                    </div>
+                    <div style="font-size:0.85rem;color:var(--success);margin-bottom:0.4rem;">
+                        <strong>Correct answer:</strong> {ga.get('correct_answer', '')}
+                    </div>
+                    <div style="font-size:0.82rem;color:var(--text-muted);">
+                        {ga.get('explanation', '')}
+                    </div>
+                </div>""", unsafe_allow_html=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            st.markdown("""<div class="reflection-box"><h4>📊 What's next?</h4>
+                <p>Now let's combine everything — your initial recall AND your question answers — to give you a complete updated picture of where you stand.</p></div>""", unsafe_allow_html=True)
+
+            if st.button("📊 Show updated gap report →", use_container_width=True):
                 st.session_state.ar_analysis_post_questions = None
                 st.session_state.ar_phase = "gap_report_2"
                 st.rerun()
@@ -1237,24 +1393,51 @@ Generate targeted questions prioritising missed and misunderstood concepts. Resp
     # ── PHASE 5: Gap Report 2 (after questions) ──
     elif st.session_state.ar_phase == "gap_report_2":
         st.markdown(f"""<div class="recall-phase-box"><div class="recall-phase-title">📊 Step 5: Updated Gap Report</div>
-            <div class="ebl-phase-desc">The AI has re-analysed your knowledge based on both your free recall AND your question answers. Here's your updated picture — see what's improved and what still needs work.</div></div>""", unsafe_allow_html=True)
+            <div class="ebl-phase-desc">This combines EVERYTHING — your initial free recall AND your question answers — to give you the most accurate picture of what you know and what still needs work.</div></div>""", unsafe_allow_html=True)
 
-        # Run updated analysis combining recall + question answers
+        # Run updated analysis combining original recall + question answers
         if not st.session_state.get("ar_analysis_post_questions"):
-            with st.spinner("Re-analysing based on your recall and question answers..."):
-                combined = f"""## What the student wrote from memory:
-{st.session_state.ar_free_recall}
-
-## How the student answered targeted questions:
-{st.session_state.get('ar_question_answers', '')}"""
+            with st.spinner("Building your complete knowledge picture..."):
+                # Build a comprehensive summary of all student knowledge demonstrated
+                # Include the ORIGINAL free recall (not modified) + graded question results
+                graded = st.session_state.get("ar_graded_answers", {})
+                graded_summary = ""
+                for ga in graded.get("graded_answers", []):
+                    v = ga.get("verdict", "")
+                    graded_summary += f"Q: {ga.get('question', '')} | Concept: {ga.get('concept', '')} | "
+                    graded_summary += f"Student said: {ga.get('student_answer', '')} | Verdict: {v}\n"
 
                 analysis_messages = [{"role": "user", "content": f"""## ORIGINAL STUDY MATERIAL:
 {st.session_state.ar_study_material[:8000]}
 
-## STUDENT'S COMBINED RECALL AND QUESTION ANSWERS (Round {st.session_state.ar_round}):
-{combined}
+## PART 1 — STUDENT'S INITIAL FREE RECALL (what they wrote from memory BEFORE any questions):
+{st.session_state.ar_free_recall}
 
-Analyse this COMBINED recall and question performance against the original material. Identify what they now understand from the questions that they missed in free recall, what they STILL misunderstand, and what they STILL missed. Respond ONLY with valid JSON."""}]
+## PART 2 — INITIAL GAP ANALYSIS (what the AI found from the free recall):
+Total concepts: {st.session_state.ar_analysis.get('total_concepts', 0)}
+Understood: {st.session_state.ar_analysis.get('understood_count', 0)}
+Misunderstood: {st.session_state.ar_analysis.get('misunderstood_count', 0)}
+Missed: {st.session_state.ar_analysis.get('missed_count', 0)}
+
+Understood concepts: {json.dumps([c['concept'] for c in st.session_state.ar_analysis.get('understood', [])], indent=2)}
+Misunderstood concepts: {json.dumps([c['concept'] for c in st.session_state.ar_analysis.get('misunderstood', [])], indent=2)}
+Missed concepts: {json.dumps([c['concept'] for c in st.session_state.ar_analysis.get('missed', [])], indent=2)}
+
+## PART 3 — GRADED QUESTION ANSWERS (how the student did on targeted questions AFTER seeing their gaps):
+{graded_summary}
+
+## YOUR TASK:
+Create a COMBINED analysis that accounts for BOTH the free recall AND the question answers together.
+- If a concept was UNDERSTOOD in free recall, it stays understood (unless they got it wrong in questions — then it's misunderstood)
+- If a concept was MISSED in free recall but answered CORRECTLY in questions, it moves to understood
+- If a concept was MISUNDERSTOOD in free recall but answered CORRECTLY in questions, it moves to understood
+- If a concept was MISSED in free recall and answered INCORRECTLY or "I DON'T KNOW" in questions, it stays missed
+- If a concept was MISUNDERSTOOD in free recall and answered INCORRECTLY in questions, it stays misunderstood
+- Concepts not tested by questions keep their original status from the free recall
+
+The round_score should reflect the student's TOTAL knowledge demonstrated across both free recall and questions combined.
+
+Respond ONLY with valid JSON."""}]
                 result = call_claude_json(analysis_messages, ACTIVE_RECALL_ANALYSIS_PROMPT)
                 if result:
                     st.session_state.ar_analysis_post_questions = result
@@ -1276,12 +1459,15 @@ Analyse this COMBINED recall and question performance against the original mater
 
             if diff > 0:
                 st.markdown(f"""<div class="reflection-box"><h4>📈 Progress within this round</h4>
-                    <p>Your score improved from <strong>{pre_score}%</strong> (free recall) to <strong>{post_score}%</strong> (after questions) — that's a <strong>+{diff}%</strong> improvement. The questions helped you retrieve knowledge you couldn't access freely.</p></div>""", unsafe_allow_html=True)
+                    <p>Your score improved from <strong>{pre_score}%</strong> (free recall alone) to <strong>{post_score}%</strong> (after questions) — that's a <strong>+{diff}%</strong> improvement. The questions helped you demonstrate knowledge you couldn't access freely.</p></div>""", unsafe_allow_html=True)
             elif diff == 0:
                 st.markdown(f"""<div class="reflection-box"><h4>📊 Consistent performance</h4>
                     <p>Your score held steady at <strong>{post_score}%</strong>. The questions confirmed what your free recall showed.</p></div>""", unsafe_allow_html=True)
+            else:
+                st.markdown(f"""<div class="reflection-box"><h4>📊 Results</h4>
+                    <p>Your combined score is <strong>{post_score}%</strong>. Some question answers revealed gaps that weren't apparent in your free recall — that's useful to know.</p></div>""", unsafe_allow_html=True)
 
-            _render_gap_report(post_q, "After recall + questions combined")
+            _render_gap_report(post_q, "Combined: free recall + question answers")
 
             # Full round history
             if len(st.session_state.ar_history) > 1:
@@ -1314,6 +1500,7 @@ Analyse this COMBINED recall and question performance against the original mater
                     st.session_state.ar_questions = None
                     st.session_state.ar_answers = {}
                     st.session_state.ar_question_answers = None
+                    st.session_state.ar_graded_answers = None
                     st.rerun()
 
 
