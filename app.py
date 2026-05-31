@@ -296,6 +296,82 @@ section[data-testid="stSidebar"] .streamlit-expanderHeader span {
 
 .section-divider { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
 
+/* ─── Chat Message Dark Theme ─── */
+.stChatMessage {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    color: var(--text-primary) !important;
+}
+.stChatMessage p, .stChatMessage li, .stChatMessage span {
+    color: var(--text-primary) !important;
+}
+.stChatMessage h1, .stChatMessage h2, .stChatMessage h3,
+.stChatMessage h4, .stChatMessage h5 {
+    color: var(--text-primary) !important;
+}
+.stChatMessage strong {
+    color: var(--accent) !important;
+}
+.stChatMessage a {
+    color: var(--accent) !important;
+}
+.stChatMessage code {
+    background: rgba(255,255,255,0.08) !important;
+    color: var(--text-primary) !important;
+    border-radius: 4px !important;
+    padding: 1px 5px !important;
+}
+.stChatMessage pre {
+    background: rgba(0,0,0,0.3) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+}
+
+/* ─── Mobile Responsive ─── */
+@media (max-width: 768px) {
+    .main-header h1 {
+        font-size: 1.6rem !important;
+    }
+    .main-header .tagline {
+        font-size: 0.8rem;
+    }
+    .mode-card {
+        padding: 1rem;
+    }
+    .mode-card h3 {
+        font-size: 1rem !important;
+    }
+    .mode-card p {
+        font-size: 0.82rem !important;
+    }
+    .pillar-badge {
+        font-size: 0.65rem;
+        padding: 2px 7px;
+    }
+    .phase-stepper {
+        gap: 0.2rem;
+    }
+    .phase-dot {
+        width: 26px;
+        height: 26px;
+        font-size: 0.65rem;
+    }
+    .phase-label {
+        font-size: 0.6rem;
+    }
+    .ebl-phase, .recall-phase-box, .reflection-box {
+        padding: 0.9rem 1rem;
+    }
+    .limitation-notice {
+        font-size: 0.72rem;
+        padding: 0.6rem 0.8rem;
+    }
+    .stChatMessage {
+        padding: 0.8rem !important;
+    }
+}
+
 .app-footer {
     text-align: center; padding: 1.5rem;
     border-top: 1px solid var(--border); margin-top: 2rem;
@@ -747,13 +823,16 @@ def render_phase_stepper(current_phase):
 
 
 def render_message(role, content):
+    """Render chat message using Streamlit's native chat_message for proper markdown rendering."""
     if role == "user":
-        css_class, icon = "chat-msg chat-msg-user", "🧑‍🎓"
+        with st.chat_message("user", avatar="🧑‍🎓"):
+            st.markdown(content)
     elif role == "system":
-        css_class, icon = "chat-msg chat-msg-system", "🔔"
+        with st.chat_message("assistant", avatar="🔔"):
+            st.markdown(f"*{content}*")
     else:
-        css_class, icon = "chat-msg chat-msg-assistant", "🔬"
-    st.markdown(f'<div class="{css_class}">{icon} {content}</div>', unsafe_allow_html=True)
+        with st.chat_message("assistant", avatar="🔬"):
+            st.markdown(content)
 
 
 def render_real_ai_badges(pillars):
