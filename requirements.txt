@@ -3,3 +3,5 @@ anthropic>=0.34.0
 pypdf>=4.0.0
 python-docx>=1.1.0
 python-pptx>=0.6.23
+gspread>=6.0.0
+google-auth>=2.20.0
