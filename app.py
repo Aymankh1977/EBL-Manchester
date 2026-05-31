@@ -11,6 +11,7 @@ import anthropic
 import json
 import re
 import smtplib
+import uuid
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
@@ -759,6 +760,64 @@ def get_api_key():
         return None
 
 
+def log_user_session():
+    """Log each unique session to Google Sheets for user counting. Runs once per session."""
+    if st.session_state.get("session_logged"):
+        return  # Already logged this session
+
+    try:
+        import gspread
+        from google.oauth2.service_account import Credentials
+
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        client = gspread.authorize(creds)
+
+        sheet = client.open("DentEdTech_UserLog").sheet1
+
+        # Generate a unique session ID
+        session_id = str(uuid.uuid4())[:8]
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Append row: timestamp, session_id, discipline, year
+        sheet.append_row([
+            timestamp,
+            session_id,
+            st.session_state.get("discipline", "Unknown"),
+            st.session_state.get("year_of_study", "Unknown"),
+        ])
+
+        st.session_state.session_logged = True
+    except Exception:
+        # Silently fail — don't break the app if tracking fails
+        st.session_state.session_logged = True
+
+
+def get_user_count():
+    """Get total session count from Google Sheets."""
+    try:
+        import gspread
+        from google.oauth2.service_account import Credentials
+
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        client = gspread.authorize(creds)
+
+        sheet = client.open("DentEdTech_UserLog").sheet1
+        # Row count minus header row
+        return max(0, len(sheet.get_all_values()) - 1)
+    except Exception:
+        return None
+
+
 def call_claude(messages, system_prompt, use_search=False):
     api_key = get_api_key()
     if not api_key:
@@ -969,6 +1028,9 @@ def _render_gap_report(analysis, context_label):
             st.markdown("*Keep working — you'll get there!*")
 
 
+# ─── Log User Session ───
+log_user_session()
+
 # ─── Sidebar ───
 with st.sidebar:
     st.markdown("""
@@ -1047,6 +1109,16 @@ with st.sidebar:
         st.session_state.mode = "feedback"
         st.session_state.feedback_submitted = False
         st.rerun()
+
+    st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
+
+    # User count
+    user_count = get_user_count()
+    if user_count is not None:
+        st.markdown(f"""<div style="text-align:center;padding:0.5rem 0;">
+            <span style="font-size:1.3rem;font-weight:700;color:var(--accent);">{user_count}</span>
+            <span style="font-size:0.75rem;color:var(--text-muted);display:block;">sessions to date</span>
+        </div>""", unsafe_allow_html=True)
 
     st.markdown("""<div class="app-footer">© 2026 DentEdTech™<br>University of Manchester<br><em>Not a substitute for clinical judgement</em></div>""", unsafe_allow_html=True)
 
