@@ -1,7 +1,7 @@
 """
 DentEdTech™ Evidence Engine
-An educational AI platform for medicine, dentistry, and pharmacology students.
-Built on the REAL-AI framework principles.
+An educational AI platform for medicine, dentistry, and pharmacology students
+at Manchester University. Built on the REAL-AI framework principles.
 
 © DentEdTech™ - All Rights Reserved
 """
@@ -10,6 +10,8 @@ import streamlit as st
 import anthropic
 import json
 import re
+import urllib.request
+import urllib.error
 from datetime import datetime
 
 # ─── Page Config ───
@@ -1607,42 +1609,48 @@ ADDITIONAL COMMENTS
 ================================
 Sent from DentEdTech™ Evidence Engine"""
 
-            # Send via Formspree (simple server-side HTTP POST)
+            # Send via Web3Forms (simple JSON POST, delivers to your email)
             try:
-                formspree_url = st.secrets["FORMSPREE_URL"]
+                web3forms_key = st.secrets["WEB3FORMS_KEY"]
             except (KeyError, FileNotFoundError):
-                formspree_url = None
+                web3forms_key = None
 
-            if not formspree_url:
-                st.error("Feedback service not configured. Please add FORMSPREE_URL to Streamlit secrets.")
+            if not web3forms_key:
+                st.error("Feedback service not configured. Please add WEB3FORMS_KEY to Streamlit secrets.")
             else:
-                import urllib.request
-                import urllib.parse
-
-                form_data = urllib.parse.urlencode({
+                form_data = json.dumps({
+                    "access_key": web3forms_key,
+                    "subject": f"DentEdTech™ Feedback — {fb_discipline} {fb_year} — {datetime.now().strftime('%d/%m/%Y')}",
+                    "from_name": fb_name or "Anonymous Student",
                     "email": fb_email or "anonymous@dentedtech.app",
-                    "_replyto": fb_email or "",
-                    "_subject": f"DentEdTech™ Feedback — {fb_discipline} {fb_year} — {datetime.now().strftime('%d/%m/%Y')}",
-                    "name": fb_name or "Anonymous Student",
                     "message": message_body,
                 }).encode("utf-8")
 
                 req = urllib.request.Request(
-                    formspree_url,
+                    "https://api.web3forms.com/submit",
                     data=form_data,
                     headers={
+                        "Content-Type": "application/json",
                         "Accept": "application/json",
-                        "Content-Type": "application/x-www-form-urlencoded",
                     },
                 )
 
                 try:
-                    with urllib.request.urlopen(req, timeout=10) as resp:
-                        if resp.status == 200:
+                    with urllib.request.urlopen(req, timeout=15) as resp:
+                        resp_body = resp.read().decode("utf-8")
+                        resp_json = json.loads(resp_body)
+                        if resp_json.get("success"):
                             st.session_state.feedback_submitted = True
                             st.rerun()
                         else:
-                            st.error("Failed to send feedback. Please try again.")
+                            st.error(f"Feedback service error: {resp_json.get('message', 'Unknown error')}")
+                except urllib.error.HTTPError as e:
+                    st.error(f"Could not send feedback: {e.code} {e.reason}")
+                    st.markdown(f"""<div class="limitation-notice">
+                        <strong>Alternative:</strong> Please copy the feedback below and email it manually to
+                        <strong>ayman.khalifah@manchester.ac.uk</strong>
+                    </div>""", unsafe_allow_html=True)
+                    st.code(message_body, language=None)
                 except Exception as e:
                     st.error(f"Could not send feedback: {str(e)}")
                     st.markdown(f"""<div class="limitation-notice">
