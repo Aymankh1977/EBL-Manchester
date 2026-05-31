@@ -10,8 +10,9 @@ import streamlit as st
 import anthropic
 import json
 import re
-import urllib.request
-import urllib.error
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 
 # ─── Page Config ───
@@ -1609,48 +1610,36 @@ ADDITIONAL COMMENTS
 ================================
 Sent from DentEdTech™ Evidence Engine"""
 
-            # Send via Web3Forms (simple JSON POST, delivers to your email)
+            # Send via Gmail SMTP (direct, no third-party service)
             try:
-                web3forms_key = st.secrets["WEB3FORMS_KEY"]
+                gmail_user = st.secrets["GMAIL_ADDRESS"]
+                gmail_app_password = st.secrets["GMAIL_APP_PASSWORD"]
             except (KeyError, FileNotFoundError):
-                web3forms_key = None
+                gmail_user = None
+                gmail_app_password = None
 
-            if not web3forms_key:
-                st.error("Feedback service not configured. Please add WEB3FORMS_KEY to Streamlit secrets.")
+            if not gmail_user or not gmail_app_password:
+                st.error("Feedback email not configured. Please add GMAIL_ADDRESS and GMAIL_APP_PASSWORD to Streamlit secrets.")
             else:
-                form_data = json.dumps({
-                    "access_key": web3forms_key,
-                    "subject": f"DentEdTech™ Feedback — {fb_discipline} {fb_year} — {datetime.now().strftime('%d/%m/%Y')}",
-                    "from_name": fb_name or "Anonymous Student",
-                    "email": fb_email or "anonymous@dentedtech.app",
-                    "message": message_body,
-                }).encode("utf-8")
+                recipient = "ayman.khalifah@manchester.ac.uk"
+                subject = f"DentEdTech™ Feedback — {fb_discipline} {fb_year} — {datetime.now().strftime('%d/%m/%Y')}"
 
-                req = urllib.request.Request(
-                    "https://api.web3forms.com/submit",
-                    data=form_data,
-                    headers={
-                        "Content-Type": "application/json",
-                        "Accept": "application/json",
-                    },
-                )
+                msg = MIMEMultipart()
+                msg["From"] = gmail_user
+                msg["To"] = recipient
+                msg["Subject"] = subject
+                msg["Reply-To"] = fb_email or gmail_user
+                msg.attach(MIMEText(message_body, "plain"))
 
                 try:
-                    with urllib.request.urlopen(req, timeout=15) as resp:
-                        resp_body = resp.read().decode("utf-8")
-                        resp_json = json.loads(resp_body)
-                        if resp_json.get("success"):
-                            st.session_state.feedback_submitted = True
-                            st.rerun()
-                        else:
-                            st.error(f"Feedback service error: {resp_json.get('message', 'Unknown error')}")
-                except urllib.error.HTTPError as e:
-                    st.error(f"Could not send feedback: {e.code} {e.reason}")
-                    st.markdown(f"""<div class="limitation-notice">
-                        <strong>Alternative:</strong> Please copy the feedback below and email it manually to
-                        <strong>ayman.khalifah@manchester.ac.uk</strong>
-                    </div>""", unsafe_allow_html=True)
-                    st.code(message_body, language=None)
+                    with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as server:
+                        server.starttls()
+                        server.login(gmail_user, gmail_app_password)
+                        server.sendmail(gmail_user, recipient, msg.as_string())
+                    st.session_state.feedback_submitted = True
+                    st.rerun()
+                except smtplib.SMTPAuthenticationError:
+                    st.error("Gmail authentication failed. Please check your GMAIL_ADDRESS and GMAIL_APP_PASSWORD in Streamlit secrets.")
                 except Exception as e:
                     st.error(f"Could not send feedback: {str(e)}")
                     st.markdown(f"""<div class="limitation-notice">
