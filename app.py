@@ -1,7 +1,7 @@
 """
 DentEdTech™ Evidence Engine
-An educational AI platform for medicine, dentistry, and pharmacology students
-at Manchester University. Built on the REAL-AI framework principles.
+An educational AI platform for medicine, dentistry, and pharmacology students.
+Built on the REAL-AI framework principles.
 
 © DentEdTech™ - All Rights Reserved
 """
@@ -1529,19 +1529,6 @@ elif st.session_state.mode == "feedback":
             st.session_state.feedback_submitted = False
             st.rerun()
     else:
-        # Get EmailJS credentials from secrets
-        try:
-            emailjs_service = st.secrets["EMAILJS_SERVICE_ID"]
-            emailjs_template = st.secrets["EMAILJS_TEMPLATE_ID"]
-            emailjs_public_key = st.secrets["EMAILJS_PUBLIC_KEY"]
-            emailjs_configured = True
-        except (KeyError, FileNotFoundError):
-            emailjs_configured = False
-
-        if not emailjs_configured:
-            st.warning("Feedback email service is not configured. Please contact the administrator.")
-
-        # Render the feedback form entirely in HTML with EmailJS
         st.markdown("##### About You *(optional)*")
         fb_name = st.text_input("Your name", placeholder="Optional — you can remain anonymous", key="fb_name")
         fb_email = st.text_input("Your email", placeholder="Optional — only if you'd like a response", key="fb_email")
@@ -1578,18 +1565,15 @@ elif st.session_state.mode == "feedback":
             placeholder="Any additional comments, concerns, or praise.", key="fb_additional")
 
         if st.button("Submit Feedback →", use_container_width=True, key="btn_submit_feedback"):
-            if not emailjs_configured:
-                st.error("Email service not configured. Please contact the administrator.")
-            else:
-                # Build features list
-                features_used = []
-                if used_evidence: features_used.append("Evidence-Based Knowledge")
-                if used_ebl: features_used.append("Enquiry-Based Learning")
-                if used_video: features_used.append("Clinical Video Trust Engine")
-                if used_recall: features_used.append("Active Recall")
+            # Build features list
+            features_used = []
+            if used_evidence: features_used.append("Evidence-Based Knowledge")
+            if used_ebl: features_used.append("Enquiry-Based Learning")
+            if used_video: features_used.append("Clinical Video Trust Engine")
+            if used_recall: features_used.append("Active Recall")
 
-                # Build the full message
-                message_body = f"""DentEdTech™ Platform Feedback
+            # Build the full message
+            message_body = f"""DentEdTech™ Platform Feedback
 ================================
 Submitted: {datetime.now().strftime('%Y-%m-%d %H:%M')}
 
@@ -1623,50 +1607,46 @@ ADDITIONAL COMMENTS
 ================================
 Sent from DentEdTech™ Evidence Engine"""
 
-                from_name = fb_name or "Anonymous Student"
-                from_email = fb_email or "noreply@dentedtech.app"
+            # Send via Formspree (simple server-side HTTP POST)
+            try:
+                formspree_url = st.secrets["FORMSPREE_URL"]
+            except (KeyError, FileNotFoundError):
+                formspree_url = None
 
-                # Escape for JavaScript
-                js_name = json.dumps(from_name)
-                js_email = json.dumps(from_email)
-                js_message = json.dumps(message_body)
+            if not formspree_url:
+                st.error("Feedback service not configured. Please add FORMSPREE_URL to Streamlit secrets.")
+            else:
+                import urllib.request
+                import urllib.parse
 
-                # Inject EmailJS script and send
-                emailjs_html = f"""
-                <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-                <div id="emailjs-status" style="
-                    text-align: center; padding: 1.2rem; margin: 1rem 0;
-                    border-radius: 10px; font-family: 'DM Sans', sans-serif;
-                    font-size: 0.9rem;
-                    background: rgba(212, 168, 83, 0.08);
-                    border: 1px solid rgba(212, 168, 83, 0.25);
-                    color: #E8C067;
-                ">⏳ Sending your feedback...</div>
-                <script>
-                (function() {{
-                    emailjs.init({{ publicKey: "{emailjs_public_key}" }});
-                    emailjs.send("{emailjs_service}", "{emailjs_template}", {{
-                        from_name: {js_name},
-                        from_email: {js_email},
-                        message: {js_message},
-                    }}).then(
-                        function(response) {{
-                            var el = document.getElementById("emailjs-status");
-                            el.style.background = "rgba(76, 175, 125, 0.1)";
-                            el.style.borderColor = "rgba(76, 175, 125, 0.3)";
-                            el.style.color = "#5FCC8F";
-                            el.innerHTML = "✅ <strong>Feedback sent successfully!</strong><br><span style='font-size:0.8rem;'>Thank you — your input shapes the next version of DentEdTech™.</span>";
-                        }},
-                        function(error) {{
-                            var el = document.getElementById("emailjs-status");
-                            el.style.background = "rgba(196, 75, 75, 0.1)";
-                            el.style.borderColor = "rgba(196, 75, 75, 0.3)";
-                            el.style.color = "#E06060";
-                            el.innerHTML = "❌ <strong>Failed to send.</strong> Please email your feedback manually to ayman.khalifah@manchester.ac.uk";
-                        }}
-                    );
-                }})();
-                </script>
-                """
-                st.components.v1.html(emailjs_html, height=100)
-                st.session_state.feedback_submitted = True
+                form_data = urllib.parse.urlencode({
+                    "email": fb_email or "anonymous@dentedtech.app",
+                    "_replyto": fb_email or "",
+                    "_subject": f"DentEdTech™ Feedback — {fb_discipline} {fb_year} — {datetime.now().strftime('%d/%m/%Y')}",
+                    "name": fb_name or "Anonymous Student",
+                    "message": message_body,
+                }).encode("utf-8")
+
+                req = urllib.request.Request(
+                    formspree_url,
+                    data=form_data,
+                    headers={
+                        "Accept": "application/json",
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                )
+
+                try:
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        if resp.status == 200:
+                            st.session_state.feedback_submitted = True
+                            st.rerun()
+                        else:
+                            st.error("Failed to send feedback. Please try again.")
+                except Exception as e:
+                    st.error(f"Could not send feedback: {str(e)}")
+                    st.markdown(f"""<div class="limitation-notice">
+                        <strong>Alternative:</strong> Please copy the feedback below and email it manually to
+                        <strong>ayman.khalifah@manchester.ac.uk</strong>
+                    </div>""", unsafe_allow_html=True)
+                    st.code(message_body, language=None)
