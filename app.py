@@ -19,7 +19,7 @@ from datetime import datetime
 # ─── Page Config ───
 st.set_page_config(
     page_title="DentEdTech™ Evidence Engine",
-    page_icon="🔬",
+    page_icon="DentEdTech_logo.jpeg",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -1049,12 +1049,10 @@ log_user_session()
 
 # ─── Sidebar ───
 with st.sidebar:
+    st.image("DentEdTech_logo.jpeg", use_container_width=True)
     st.markdown("""
-    <div style="text-align:center; padding: 1rem 0 0.5rem;">
-        <span style="font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: #F5F8F6;">
-            Dent<span style="color: #E8C067;">Ed</span>Tech™
-        </span>
-        <div style="font-size: 0.72rem; color: #99B3A5; margin-top: 0.2rem; letter-spacing: 0.08em; text-transform: uppercase;">
+    <div style="text-align:center; padding: 0 0 0.5rem;">
+        <div style="font-size: 0.72rem; color: #99B3A5; letter-spacing: 0.08em; text-transform: uppercase;">
             Evidence Engine
         </div>
     </div>
@@ -1143,8 +1141,11 @@ with st.sidebar:
 
 
 # ─── Main Content ───
+_logo_col1, _logo_col2, _logo_col3 = st.columns([1, 1, 1])
+with _logo_col2:
+    st.image("DentEdTech_logo.jpeg", use_container_width=True)
 st.markdown("""
-<div class="main-header">
+<div class="main-header" style="padding-top: 0.5rem;">
     <h1>Dent<span class="brand-accent">Ed</span>Tech™ Evidence Engine</h1>
     <div class="tagline">Theory-informed AI for health professions learning — built on the REAL-AI framework</div>
 </div>
