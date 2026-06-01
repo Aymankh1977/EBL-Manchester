@@ -379,6 +379,22 @@ section[data-testid="stSidebar"] .streamlit-expanderHeader span {
     color: var(--text-muted); font-size: 0.75rem;
 }
 
+/* ─── Disclaimer ─── */
+.disclaimer-box {
+    background: rgba(232, 192, 103, 0.06);
+    border: 1px solid rgba(232, 192, 103, 0.2);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    margin: 1rem 0 1.5rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    text-align: center;
+}
+.disclaimer-box strong {
+    color: var(--accent);
+}
+
 /* ─── Active Recall Styles ─── */
 .recall-phase-box {
     background: var(--bg-card);
@@ -1120,7 +1136,10 @@ with st.sidebar:
             <span style="font-size:0.75rem;color:var(--text-muted);display:block;">sessions to date</span>
         </div>""", unsafe_allow_html=True)
 
-    st.markdown("""<div class="app-footer">© 2026 DentEdTech™<br>University of Manchester<br><em>Not a substitute for clinical judgement</em></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="app-footer">
+        <strong style="color:var(--accent);font-size:0.7rem;">⚠️ PROTOTYPE — NOT AN OFFICIAL UNIVERSITY APPLICATION</strong><br>
+        <span style="font-size:0.68rem;">Verify all outputs against your official curriculum.</span><br><br>
+        © 2026 DentEdTech™<br>University of Manchester<br><em>Not a substitute for clinical judgement</em></div>""", unsafe_allow_html=True)
 
 
 # ─── Main Content ───
@@ -1136,6 +1155,14 @@ st.markdown("""
 if st.session_state.mode is None:
     st.markdown(f"""<div style="text-align:center;margin-bottom:2rem;">
         <span style="color:var(--text-secondary);font-size:0.9rem;">Welcome, {st.session_state.discipline} student · {st.session_state.year_of_study} · University of Manchester</span></div>""", unsafe_allow_html=True)
+
+    st.markdown("""<div class="disclaimer-box">
+        <strong>⚠️ Important Notice</strong><br>
+        This platform is <strong>not an official application</strong> of the University of Manchester or any other university.
+        It is a <strong>research prototype</strong> developed under the DentEdTech™ project.
+        All outputs must be verified against your official curriculum, lecture materials, and clinical guidelines.
+        Always consult your tutors and supervisors before applying any information in clinical practice.
+    </div>""", unsafe_allow_html=True)
 
     col1, col2 = st.columns(2, gap="medium")
     col3, col4 = st.columns(2, gap="medium")
