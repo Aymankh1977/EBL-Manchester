@@ -1151,7 +1151,7 @@ with st.sidebar:
     st.markdown("""<div class="app-footer">
         <strong style="color:var(--accent);font-size:0.7rem;">⚠️ PROTOTYPE — NOT AN OFFICIAL UNIVERSITY APPLICATION</strong><br>
         <span style="font-size:0.68rem;">Verify all outputs against your official curriculum.</span><br><br>
-        © 2026 DentEdTech™<br>University of Manchester<br><em>Not a substitute for clinical judgement</em></div>""", unsafe_allow_html=True)
+        © 2026 DentEdTech™<br><em>Not a substitute for clinical judgement</em></div>""", unsafe_allow_html=True)
 
 
 # ─── Main Content ───
@@ -1166,7 +1166,7 @@ st.markdown("""
 # ─── Mode Selection ───
 if st.session_state.mode is None:
     st.markdown(f"""<div style="text-align:center;margin-bottom:2rem;">
-        <span style="color:var(--text-secondary);font-size:0.9rem;">Welcome, {st.session_state.discipline} student · {st.session_state.year_of_study} · University of Manchester</span></div>""", unsafe_allow_html=True)
+        <span style="color:var(--text-secondary);font-size:0.9rem;">Welcome, {st.session_state.discipline} student · {st.session_state.year_of_study}</span></div>""", unsafe_allow_html=True)
 
     st.markdown("""<div class="disclaimer-box">
         <strong>⚠️ Important Notice</strong><br>
