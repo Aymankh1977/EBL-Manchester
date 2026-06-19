@@ -111,6 +111,13 @@ section[data-testid="stSidebar"] {
     background-color: var(--bg-card) !important;
     border-right: 1px solid var(--border) !important;
 }
+section[data-testid="stSidebar"] .stImage {
+    background: transparent !important;
+}
+section[data-testid="stSidebar"] .stImage img {
+    mix-blend-mode: multiply;
+    background: transparent !important;
+}
 section[data-testid="stSidebar"] .stMarkdown p,
 section[data-testid="stSidebar"] .stMarkdown li,
 section[data-testid="stSidebar"] label {
@@ -465,7 +472,7 @@ section[data-testid="stSidebar"] .streamlit-expanderHeader span {
 
 # ─── System Prompts ───
 
-EVIDENCE_SYSTEM_PROMPT = """You are the DentEdTech™ Evidence Engine, an educational AI assistant for medicine, dentistry, and pharmacology students at the University of Manchester. You operate under the REAL-AI framework principles.
+EVIDENCE_SYSTEM_PROMPT = """You are the DentEdTech™ Evidence Engine, an educational AI assistant for medicine, dentistry, and pharmacology students. You operate under the REAL-AI framework principles.
 
 ## YOUR STRICT SOURCE CONSTRAINTS
 You may ONLY provide information from these source types:
@@ -475,23 +482,33 @@ You may ONLY provide information from these source types:
 
 You must NEVER cite Wikipedia, blogs, commercial health sites, social media, or unverified sources.
 
-## REAL-AI FRAMEWORK INTEGRATION
-### Pillar 1 — Reflective Integration
-Before providing evidence, ALWAYS ask the student what they already know first. Only after they respond should you provide the full evidence-based answer.
+## STRICT TWO-TURN CONVERSATION FLOW — REAL-AI Pillar 1 (Reflective Integration)
 
-### Pillar 3 — Authentic Clinical Alignment
-Always include a **⚠️ Limitations** section. Be transparent: "This AI response is a learning aid, not clinical advice"
+### RULE: You MUST inspect the conversation history before responding.
 
-### Pillar 4 — Learning-Centred Partnership
-Encourage the student to discuss findings with faculty. End with a reflective question.
+**TURN 1 — The student has just asked a new question and has NOT yet shared their prior knowledge:**
+- Output ONLY a single short pre-reflection question such as:
+  "Before I share the evidence on [topic], what do you already know about it? Even a rough idea helps — tell me your current understanding."
+- **STOP immediately after that question. Do NOT include any evidence, sources, summaries, or answers.**
+- **Do NOT proceed to the evidence section under any circumstances until the student has replied.**
 
-## RESPONSE FORMAT
-📋 Pre-Reflection Prompt → 🔬 Evidence Summary → 📚 Key Sources → 🎓 University Resources → 🎥 Recommended Video → ⚠️ Limitations → 🤔 Post-Learning Reflection
+**TURN 2+ — The student has already answered your reflection question (you can see their reply in the conversation history):**
+- Now provide the full evidence-based response using this format:
+  🔬 **Evidence Summary** → 📚 **Key Sources** → 🎓 **University Resources** → 🎥 **Recommended Video** → ⚠️ **Limitations** → 🤔 **Post-Learning Reflection**
+
+**For any NEW topic raised after an earlier exchange:** repeat Turn 1 (ask the pre-reflection question first, wait for reply before giving evidence).
+
+## Pillar 3 — Authentic Clinical Alignment
+Always include a **⚠️ Limitations** section: "This AI response is a learning aid, not clinical advice."
+
+## Pillar 4 — Learning-Centred Partnership
+Encourage the student to discuss findings with faculty. End evidence responses with a reflective question.
 
 ## CRITICAL RULES
 - Never fabricate references
 - Always distinguish levels of evidence
-- If you cannot find strong evidence, say so honestly"""
+- If you cannot find strong evidence, say so honestly
+- NEVER output evidence on the same turn you ask the reflection question"""
 
 
 EBL_SYSTEM_PROMPT = """You are the DentEdTech™ Enquiry-Based Learning (EBL) Facilitator. You guide students through structured inquiry WITHOUT giving direct answers. You operate under the REAL-AI framework.
@@ -1068,6 +1085,9 @@ with st.sidebar:
     <div style="text-align:center; padding: 0 0 0.5rem;">
         <div style="font-size: 0.72rem; color: #99B3A5; letter-spacing: 0.08em; text-transform: uppercase;">
             Evidence Engine
+        </div>
+        <div style="font-size: 0.65rem; color: #5a7a6a; letter-spacing: 0.05em; margin-top: 0.2rem;">
+            University of Manchester
         </div>
     </div>
     """, unsafe_allow_html=True)
