@@ -774,6 +774,7 @@ def init_session():
         "reflection_given": False,
         "discipline": "Dentistry",
         "year_of_study": "Year 3",
+        "university": "University of Manchester",
         "video_messages": [],
         # Active Recall state
         "ar_phase": "upload",  # upload → free_recall → analysis → questions → relearn → repeat
@@ -1097,6 +1098,7 @@ with st.sidebar:
     st.markdown("##### 🎓 Your Profile")
     st.session_state.discipline = st.selectbox("Discipline", ["Dentistry", "Medicine", "Pharmacology"], index=0)
     st.session_state.year_of_study = st.selectbox("Year of Study", ["Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Postgraduate"], index=2)
+    st.session_state.university = st.selectbox("University", ["University of Manchester", "University of Birmingham", "King's College London", "University of Leeds", "University of Liverpool", "University of Bristol", "Newcastle University", "Other"], index=0)
 
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
 
@@ -1244,7 +1246,7 @@ elif st.session_state.mode == "evidence":
     user_input = st.chat_input("Ask a clinical or scientific question...", key="evidence_input")
     if user_input:
         st.session_state.evidence_messages.append({"role": "user", "content": user_input})
-        context = f"[Student: {st.session_state.discipline}, {st.session_state.year_of_study}, University of Manchester]"
+        context = f"[Student: {st.session_state.discipline}, {st.session_state.year_of_study}, {st.session_state.university}]"
         api_msgs = [{"role": m["role"], "content": (f"{context}\n\n{m['content']}" if i == 0 and m["role"] == "user" else m["content"])} for i, m in enumerate(st.session_state.evidence_messages)]
         with st.spinner("Searching evidence-based sources..."):
             response = call_claude(api_msgs, EVIDENCE_SYSTEM_PROMPT, use_search=True)
