@@ -853,13 +853,13 @@ def call_claude(messages, system_prompt, use_search=False):
 
     client = anthropic.Anthropic(api_key=api_key)
     kwargs = {
-        "model": "claude-sonnet-4-20250514",
+        "model": "claude-sonnet-4-6",
         "max_tokens": 4096,
         "system": system_prompt,
         "messages": messages,
     }
     if use_search:
-        kwargs["tools"] = [{"type": "web_search_20250305", "name": "web_search"}]
+        kwargs["tools"] = [{"type": "web_search_20260209", "name": "web_search"}]
 
     try:
         response = client.messages.create(**kwargs)
