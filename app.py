@@ -853,13 +853,13 @@ def call_claude(messages, system_prompt, use_search=False):
 
     client = anthropic.Anthropic(api_key=api_key)
     kwargs = {
-        "model": "claude-sonnet-4-20250514",
+        "model": "claude-sonnet-4-6",
         "max_tokens": 4096,
         "system": system_prompt,
         "messages": messages,
     }
     if use_search:
-        kwargs["tools"] = [{"type": "web_search_20250305", "name": "web_search"}]
+        kwargs["tools"] = [{"type": "web_search_20260209", "name": "web_search"}]
 
     try:
         response = client.messages.create(**kwargs)
@@ -1170,7 +1170,7 @@ if st.session_state.mode is None:
 
     st.markdown("""<div class="disclaimer-box">
         <strong>⚠️ Important Notice</strong><br>
-        This platform is <strong>not an official application</strong> of the University of Manchester or any other university.
+        This platform is <strong>not an official application</strong> of any university.
         It is a <strong>research prototype</strong> developed under the DentEdTech™ project.
         All outputs must be verified against your official curriculum, lecture materials, and clinical guidelines.
         Always consult your tutors and supervisors before applying any information in clinical practice.
