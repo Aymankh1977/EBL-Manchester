@@ -1170,7 +1170,7 @@ if st.session_state.mode is None:
 
     st.markdown("""<div class="disclaimer-box">
         <strong>⚠️ Important Notice</strong><br>
-        This platform is <strong>not an official application</strong> of the University of Manchester or any other university.
+        This platform is <strong>not an official application</strong> of any university.
         It is a <strong>research prototype</strong> developed under the DentEdTech™ project.
         All outputs must be verified against your official curriculum, lecture materials, and clinical guidelines.
         Always consult your tutors and supervisors before applying any information in clinical practice.
